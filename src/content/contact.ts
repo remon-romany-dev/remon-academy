@@ -8,10 +8,7 @@ export const CONTACT = {
   portfolio: "https://remonromany.com",
 } as const;
 
-/**
- * إنستا باي وفودافون كاش على رقم ريمون.
- * Paymob يتضاف من متغيرات البيئة لما الحساب التجريبي يبقى جاهز.
- */
+/** إنستا باي وفودافون كاش على رقم ريمون. */
 export const PAYMENT = {
   instapayAddress: "01065344806",
   vodafoneCashNumber: "01065344806",

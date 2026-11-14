@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import { connection } from "next/server";
-import { claimManualPayment, startPaymob } from "@/actions/payments";
+import { claimManualPayment } from "@/actions/payments";
 import { SiteFooter } from "@/components/site/footer";
 import { SiteHeader } from "@/components/site/header";
 import { buttonClass } from "@/components/account/styles";
@@ -11,7 +11,6 @@ import { auth } from "@/auth";
 import { CONTACT, PAYMENT, whatsappLink } from "@/content/contact";
 import { courses, formatEgp, trackById } from "@/content/site";
 import { getCourse } from "@/lib/catalog";
-import { paymobConfigured } from "@/lib/paymob";
 
 export const instant = false;
 
@@ -41,15 +40,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
   const track = trackById(course.track);
   const price = formatEgp(course.priceEgp);
   const receiptMessage = `أهلاً، حوّلت ${price} جنيه على إنستا باي 01065344806 للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
-  const cardReady = paymobConfigured();
-  const payNote =
-    search.pay === "fail"
-      ? "الدفع بالبطاقة متعملش. حوّل على إنستا باي وابعت الإيصال."
-      : search.pay === "off"
-        ? "الدفع بالبطاقة مش متفعّل دلوقتي. إنستا باي شغال."
-        : search.pay === "method"
-          ? "اختار إنستا باي أو فودافون كاش."
-          : null;
+  const payNote = search.pay === "method" ? "اختار إنستا باي أو فودافون كاش." : null;
 
   return (
     <>
@@ -118,18 +109,6 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
                   ابعت الإيصال على واتساب
                 </a>
               </li>
-              {cardReady ? (
-                <li className="rounded-3xl border border-line bg-surface p-6">
-                  <h2 className="font-display text-2xl font-black">أو ادفع بالبطاقة</h2>
-                  <p className="mt-2 text-sm leading-7 text-muted">الدفع بالبطاقة تجريبي لحد ما حساب Paymob يبقى على وضع التشغيل.</p>
-                  <form action={startPaymob} className="mt-4">
-                    <input type="hidden" name="slug" value={course.slug} />
-                    <button type="submit" className={buttonClass}>
-                      ادفع {price} ج.م
-                    </button>
-                  </form>
-                </li>
-              ) : null}
               <li className="rounded-3xl border border-line bg-surface p-6">
                 <h2 className="font-display text-2xl font-black">
                   <span className="me-3 text-accent">3</span>ابدأ التعلم
