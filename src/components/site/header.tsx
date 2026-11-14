@@ -11,7 +11,7 @@ const links = [
   { href: "/#how", label: "إزاي بتشتغل" },
   { href: "/#instructor", label: "المدرّب" },
   { href: "/#faq", label: "الأسئلة" },
-  { href: "/#contact", label: "تواصل" },
+  { href: "/account", label: "حسابي" },
 ];
 
 export function SiteHeader() {

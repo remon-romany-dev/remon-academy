@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  student
+  admin
+}
+
+enum PaymentProvider {
+  instapay
+  vodafone
+  paymob
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+}
+
+model User {
+  id           String           @id @default(cuid())
+  name         String           @db.VarChar(120)
+  email        String           @unique @db.VarChar(190)
+  passwordHash String           @db.VarChar(255)
+  role         Role             @default(student)
+  createdAt    DateTime         @default(now())
+  enrollments  Enrollment[]
+  payments     Payment[]
+  progress     LessonProgress[]
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  slug        String       @unique @db.VarChar(120)
+  title       String       @db.VarChar(180)
+  track       String       @db.VarChar(40)
+  hours       Int
+  priceEgp    Int
+  attendance  String       @db.VarChar(80)
+  summary     String       @db.Text
+  audience    String       @db.Text
+  outcomes    Json
+  published   Boolean      @default(true)
+  sort        Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  payments    Payment[]
+}
+
+model Lesson {
+  id           String           @id @default(cuid())
+  courseId     String
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  position     Int
+  title        String           @db.VarChar(180)
+  isFree       Boolean          @default(false)
+  bunnyVideoId String?          @db.VarChar(120)
+  progress     LessonProgress[]
+
+  @@unique([courseId, position])
+  @@index([courseId])
+}
+
+model Enrollment {
+  id        String        @id @default(cuid())
+  userId    String
+  courseId  String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status    PaymentStatus @default(pending)
+  createdAt DateTime      @default(now())
+
+  @@unique([userId, courseId])
+}
+
+model Payment {
+  id        String          @id @default(cuid())
+  userId    String
+  courseId  String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  provider  PaymentProvider
+  amountEgp Int
+  status    PaymentStatus   @default(pending)
+  reference String?         @db.VarChar(120)
+  createdAt DateTime        @default(now())
+
+  @@index([status])
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  lessonId    String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+}
+
+model DailyVisit {
+  id    String @id @default(cuid())
+  day   String @db.VarChar(10)
+  path  String @db.VarChar(180)
+  count Int    @default(0)
+
+  @@unique([day, path])
+}

@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { TrackVisual } from "@/components/visuals/track-visual";
 import { Reveal } from "@/components/ui/reveal";
-import { courses, formatEgp, trackById, tracks, type Track, type TrackId } from "@/content/site";
+import { getCatalog } from "@/lib/catalog";
+import { formatEgp, trackById, tracks, type Track, type TrackId } from "@/content/site";
 
 const hueStyle = (hue: number, extra?: CSSProperties): CSSProperties =>
   ({ "--h": hue, ...extra }) as CSSProperties;
@@ -36,8 +37,7 @@ const wide: Record<TrackId, boolean> = {
   "data-science": false,
 };
 
-function TrackCard({ track, index }: { track: Track; index: number }) {
-  const count = courses.filter((course) => course.track === track.id).length;
+function TrackCard({ track, index, count }: { track: Track; index: number; count: number }) {
   const isWide = wide[track.id];
   return (
     <Reveal delay={index * 60} className={spans[track.id]}>
@@ -93,7 +93,8 @@ const pills = [{ id: "all", title: "الكل", hue: 145 }, ...tracks.map(({ id, 
  * الكتالوج بالكامل Server Component. الفلترة بـ CSS (:target + :has) من غير JS،
  * فالروابط تتفتح وتتفهرس والفلتر يشتغل حتى لو الجافاسكريبت وقع.
  */
-export function Catalog() {
+export async function Catalog() {
+  const courses = await getCatalog();
   return (
     <>
       <section id="tracks" className="defer mx-auto max-w-7xl px-5 py-20 md:px-8 lg:py-28">
@@ -108,7 +109,7 @@ export function Catalog() {
         </Reveal>
         <div className="grid gap-4 lg:grid-cols-6">
           {tracks.map((track, index) => (
-            <TrackCard key={track.id} track={track} index={index} />
+            <TrackCard key={track.id} track={track} index={index} count={courses.filter((course) => course.track === track.id).length} />
           ))}
         </div>
       </section>

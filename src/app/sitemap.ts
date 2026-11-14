@@ -1,12 +1,14 @@
 import type { MetadataRoute } from "next";
-import { courses, SITE_URL } from "@/content/site";
+import { SITE_URL } from "@/content/site";
+import { getCatalog } from "@/lib/catalog";
 
 const staticPages = ["about", "terms", "privacy", "refund"];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const catalog = await getCatalog();
   return [
     { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
-    ...courses.map((course) => ({
+    ...catalog.map((course) => ({
       url: `${SITE_URL}/courses/${course.slug}`,
       changeFrequency: "monthly" as const,
       priority: 0.8,

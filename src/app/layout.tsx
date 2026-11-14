@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo, IBM_Plex_Sans_Arabic, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import { WhatsAppButton } from "@/components/site/whatsapp-button";
+import { VisitPing } from "@/components/analytics/visit-ping";
 import { MotionProvider } from "@/components/ui/motion-provider";
 import { SITE_NAME, SITE_URL } from "@/content/site";
 import "./globals.css";
@@ -71,6 +73,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
   category: "education",
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
 export const viewport: Viewport = {
@@ -88,7 +91,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full">
         <MotionProvider>{children}</MotionProvider>
+        <VisitPing />
         <WhatsAppButton />
+        {process.env.NEXT_PUBLIC_GA_ID && /^G-[A-Z0-9]+$/i.test(process.env.NEXT_PUBLIC_GA_ID) ? (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`} strategy="afterInteractive" />
+            <Script id="ga4" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${process.env.NEXT_PUBLIC_GA_ID}');`}
+            </Script>
+          </>
+        ) : null}
       </body>
     </html>
   );

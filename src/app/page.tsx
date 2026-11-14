@@ -15,13 +15,15 @@ import { Stats } from "@/components/site/stats";
 import { CursorGlow } from "@/components/ui/cursor-glow";
 import { Spotlight } from "@/components/ui/spotlight";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
-import { courses, faqs, SITE_NAME, SITE_URL } from "@/content/site";
+import { faqs, SITE_NAME, SITE_URL, type Course } from "@/content/site";
+import { getCatalog } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-const organization = {
+function organizationLd(list: Course[]) {
+  return {
   "@context": "https://schema.org",
   "@graph": [
     {
@@ -64,7 +66,7 @@ const organization = {
     {
       "@type": "ItemList",
       name: "كورسات أكاديمية ريمون",
-      itemListElement: courses.map((course, index) => ({
+      itemListElement: list.map((course, index) => ({
         "@type": "ListItem",
         position: index + 1,
         url: `${SITE_URL}/courses/${course.slug}`,
@@ -72,7 +74,8 @@ const organization = {
       })),
     },
   ],
-};
+  };
+}
 
 const faqLd = {
   "@context": "https://schema.org",
@@ -84,10 +87,11 @@ const faqLd = {
   })),
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const catalog = await getCatalog();
   return (
     <>
-      <JsonLd data={organization} />
+      <JsonLd data={organizationLd(catalog)} />
       <JsonLd data={faqLd} />
       <ScrollProgress />
       <CursorGlow />

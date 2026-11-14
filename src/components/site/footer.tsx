@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Logo } from "@/components/site/logo";
-import { courses, tracks } from "@/content/site";
+import { tracks } from "@/content/site";
+import { getCatalog } from "@/lib/catalog";
 
 const linkClass = "flex min-h-11 items-center text-base text-muted hover:text-accent";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const courses = await getCatalog();
   return (
     <footer className="defer border-t border-line bg-surface/50">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 md:px-8 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">

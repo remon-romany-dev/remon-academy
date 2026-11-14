@@ -17,11 +17,6 @@ export function Testimonials() {
         <h2 className="font-display text-4xl leading-tight font-black sm:text-5xl">
           {testimonialsAreSamples ? "كده شكل قسم الآراء" : "اللي اتعلموا قبلك بيقولوا إيه"}
         </h2>
-        {testimonialsAreSamples ? (
-          <p className="mt-4 text-lg leading-8 text-muted">
-            لسه مفيش طلاب خلّصوا كورس. الجمل دي شكل القسم بس، ومش تقييمات ناس اشتركت.
-          </p>
-        ) : null}
       </Reveal>
       <ul className="grid gap-4 md:grid-cols-3">
         {testimonials.map((item, index) => (

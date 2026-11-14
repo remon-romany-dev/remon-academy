@@ -11,8 +11,10 @@ import { SiteFooter } from "@/components/site/footer";
 import { SiteHeader } from "@/components/site/header";
 import { JsonLd } from "@/components/site/json-ld";
 import { TrackVisual } from "@/components/visuals/track-visual";
+import { LessonPlayer } from "@/components/lesson/player";
 import { whatsappLink } from "@/content/contact";
-import { courseBySlug, courses, formatEgp, SITE_NAME, SITE_URL, trackById } from "@/content/site";
+import { courses, formatEgp, SITE_NAME, SITE_URL, trackById } from "@/content/site";
+import { getCatalog, getCourse } from "@/lib/catalog";
 
 export function generateStaticParams() {
   return courses.map((course) => ({ slug: course.slug }));
@@ -20,7 +22,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<"/courses/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
-  const course = courseBySlug(slug);
+  const course = await getCourse(slug);
   if (!course) {
     return {};
   }
@@ -50,15 +52,16 @@ const arrow = (
 
 export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
   const { slug } = await props.params;
-  const course = courseBySlug(slug);
+  const course = await getCourse(slug);
   if (!course) {
     notFound();
   }
+  const catalog = await getCatalog();
   const track = trackById(course.track);
   const hue = { "--h": track.hue } as CSSProperties;
   const related = [
-    ...courses.filter((item) => item.track === course.track && item.slug !== course.slug),
-    ...courses.filter((item) => item.track !== course.track),
+    ...catalog.filter((item) => item.track === course.track && item.slug !== course.slug),
+    ...catalog.filter((item) => item.track !== course.track),
   ].slice(0, 3);
 
   const courseLd = {
@@ -146,7 +149,7 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
                 </ul>
                 <div className="mt-9 flex flex-wrap items-center gap-5">
                   <Magnetic
-                    href="#first-lesson"
+                    href={`/learn/${course.slug}?lesson=1`}
                     className="inline-flex min-h-14 items-center gap-3 rounded-full bg-accent px-8 text-lg font-bold text-accent-ink shadow-[0_12px_40px_-8px_oklch(0.88_0.23_140/0.55)]"
                   >
                     ابدأ الدرس المجاني
@@ -217,33 +220,25 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
               <p className="text-base font-bold text-[var(--tc)]">الدرس الأول مجانًا</p>
               <h2 className="font-display mt-2 text-2xl leading-snug font-black">شوف أسلوب الشرح قبل ما تدفع</h2>
               {course.freeLessonEmbedUrl ? (
-                <div className="relative mt-5 aspect-video overflow-hidden rounded-2xl border border-line bg-black">
-                  <iframe
-                    src={course.freeLessonEmbedUrl}
-                    title={`الدرس المجاني: ${course.title}`}
-                    loading="lazy"
-                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 size-full"
-                  />
+                <div className="mt-5">
+                  <LessonPlayer title={course.title} embedUrl={course.freeLessonEmbedUrl} />
                 </div>
               ) : (
-                <div className="mt-5 rounded-2xl border border-line bg-black/40 p-5 text-center">
-                  <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-accent text-accent-ink" aria-hidden>
-                    <svg width="20" height="22" viewBox="0 0 12 14" fill="none">
-                      <path d="M1 1.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L1.9.7A.6.6 0 0 0 1 1.2z" fill="currentColor" />
-                    </svg>
-                  </span>
-                  <p className="mt-3 text-base leading-7 text-muted">
-                    ابعتلنا على واتساب وهنبعتلك الدرس الأول من الكورس ده مجانًا.
-                  </p>
+                <div className="mt-5">
+                  <LessonPlayer title={course.title} />
+                  <a
+                    href={`/learn/${course.slug}?lesson=1`}
+                    className="mt-4 flex min-h-12 items-center justify-center rounded-full bg-accent px-6 font-bold text-accent-ink"
+                  >
+                    افتح الدرس المجاني
+                  </a>
                   <a
                     href={whatsappLink(`أهلاً، عايز أشوف الدرس المجاني بتاع كورس ${course.title}`)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex min-h-12 items-center rounded-full bg-[#25d366] px-6 font-bold text-white"
+                    className="mt-3 inline-flex min-h-12 items-center rounded-full bg-[#25d366] px-6 font-bold text-white"
                   >
-                    اطلب الدرس المجاني
+                    اطلب التسجيل على واتساب
                   </a>
                 </div>
               )}

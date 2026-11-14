@@ -2,10 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
+import { connection } from "next/server";
+import { claimManualPayment, startPaymob } from "@/actions/payments";
 import { SiteFooter } from "@/components/site/footer";
 import { SiteHeader } from "@/components/site/header";
+import { buttonClass } from "@/components/account/styles";
+import { auth } from "@/auth";
 import { CONTACT, PAYMENT, whatsappLink } from "@/content/contact";
-import { courseBySlug, courses, formatEgp, trackById } from "@/content/site";
+import { courses, formatEgp, trackById } from "@/content/site";
+import { getCourse } from "@/lib/catalog";
+import { paymobConfigured } from "@/lib/paymob";
+
+export const instant = false;
 
 export function generateStaticParams() {
   return courses.map((course) => ({ slug: course.slug }));
@@ -13,7 +21,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<"/checkout/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
-  const course = courseBySlug(slug);
+  const course = await getCourse(slug);
   return {
     title: course ? `الاشتراك في ${course.title}` : "الاشتراك",
     robots: { index: false, follow: false },
@@ -22,20 +30,26 @@ export async function generateMetadata(props: PageProps<"/checkout/[slug]">): Pr
 }
 
 export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">) {
+  await connection();
   const { slug } = await props.params;
-  const course = courseBySlug(slug);
+  const search = await props.searchParams;
+  const course = await getCourse(slug);
   if (!course) {
     notFound();
   }
+  const session = await auth();
   const track = trackById(course.track);
   const price = formatEgp(course.priceEgp);
-  const receiptMessage = `أهلاً، حوّلت ${price} جنيه للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
-  const askMessage = `أهلاً، عايز أشترك في كورس ${course.title} (${price} جنيه). ممكن بيانات الدفع؟`;
-
-  const methods = [
-    { name: "إنستا باي", value: PAYMENT.instapayAddress, label: "عنوان إنستا باي" },
-    { name: "فودافون كاش", value: PAYMENT.vodafoneCashNumber, label: "رقم المحفظة" },
-  ];
+  const receiptMessage = `أهلاً، حوّلت ${price} جنيه على إنستا باي 01065344806 للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
+  const cardReady = paymobConfigured();
+  const payNote =
+    search.pay === "fail"
+      ? "الدفع بالبطاقة متعملش. حوّل على إنستا باي وابعت الإيصال."
+      : search.pay === "off"
+        ? "الدفع بالبطاقة مش متفعّل دلوقتي. إنستا باي شغال."
+        : search.pay === "method"
+          ? "اختار إنستا باي أو فودافون كاش."
+          : null;
 
   return (
     <>
@@ -47,82 +61,88 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
             ← رجوع لصفحة الكورس
           </Link>
           <h1 className="font-display mt-3 text-4xl leading-tight font-black sm:text-5xl">الاشتراك في {course.title}</h1>
-          <p className="mt-3 text-lg text-muted">أربع خطوات بسيطة وتبدأ الكورس.</p>
+          <p className="mt-3 text-lg text-muted">حوّل على إنستا باي، وبعد المراجعة الكورس يتفتح في حسابك.</p>
+          {payNote ? <p className="mt-4 rounded-2xl border border-line bg-surface p-4 text-sm">{payNote}</p> : null}
 
           <div className="mt-10 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
             <ol className="space-y-4">
-              <li className="rounded-3xl border border-line bg-surface p-6">
+              <li className="rounded-3xl border border-[var(--tc-line)] bg-surface p-6">
                 <h2 className="font-display text-2xl font-black">
-                  <span className="me-3 text-accent">1</span>حوّل المبلغ
+                  <span className="me-3 text-accent">1</span>إنستا باي
                 </h2>
                 <p className="mt-2 text-base leading-7 text-muted">
-                  حوّل <strong className="text-foreground">{price} ج.م</strong> بأي طريقة من دول:
+                  حوّل <strong className="text-foreground">{price} ج.م</strong> على الرقم ده:
                 </p>
-                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {methods.map((method) => (
-                    <li key={method.name} className="rounded-2xl border border-line bg-background/40 p-4">
-                      <p className="font-bold">{method.name}</p>
-                      {method.value ? (
-                        <p className="mt-1 text-sm text-muted">
-                          {method.label}:{" "}
-                          <span dir="ltr" className="font-mono text-base text-foreground select-all">
-                            {method.value}
-                          </span>
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-sm text-muted">هنبعتلك البيانات على واتساب.</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href={whatsappLink(askMessage)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex min-h-12 items-center rounded-full border border-line px-6 font-bold hover:border-accent hover:text-accent"
-                >
-                  اطلب بيانات الدفع على واتساب
-                </a>
+                <p dir="ltr" className="mt-4 select-all font-mono text-3xl font-black tracking-wide">
+                  {PAYMENT.instapayAddress}
+                </p>
+                <p className="mt-2 text-sm text-muted">نفس الرقم عليه فودافون كاش: {PAYMENT.vodafoneCashNumber}</p>
               </li>
               <li className="rounded-3xl border border-line bg-surface p-6">
                 <h2 className="font-display text-2xl font-black">
-                  <span className="me-3 text-accent">2</span>ابعت الإيصال
+                  <span className="me-3 text-accent">2</span>سجّل التحويل
                 </h2>
-                <p className="mt-2 text-base leading-7 text-muted">
-                  صوّر شاشة التحويل وابعتها على واتساب مع اسمك.
-                </p>
+                {session?.user ? (
+                  <form action={claimManualPayment} className="mt-4 space-y-3">
+                    <input type="hidden" name="slug" value={course.slug} />
+                    <label className="flex items-center gap-2 text-sm font-bold">
+                      <input type="radio" name="provider" value="instapay" defaultChecked />
+                      حوّلت على إنستا باي
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-bold">
+                      <input type="radio" name="provider" value="vodafone" />
+                      حوّلت على فودافون كاش
+                    </label>
+                    <button type="submit" className={buttonClass}>
+                      سجّلت التحويل
+                    </button>
+                  </form>
+                ) : (
+                  <p className="mt-3 text-base leading-7 text-muted">
+                    <Link href={`/login?next=${encodeURIComponent(`/checkout/${course.slug}`)}`} className="font-bold text-accent">
+                      ادخل
+                    </Link>{" "}
+                    أو{" "}
+                    <Link href={`/register?next=${encodeURIComponent(`/checkout/${course.slug}`)}`} className="font-bold text-accent">
+                      سجّل حساب
+                    </Link>{" "}
+                    عشان نربط التحويل بيك.
+                  </p>
+                )}
                 <a
                   href={whatsappLink(receiptMessage)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex min-h-14 items-center rounded-full bg-[#25d366] px-8 text-lg font-bold text-white"
+                  className="mt-4 inline-flex min-h-12 items-center rounded-full bg-[#25d366] px-6 font-bold text-white"
                 >
                   ابعت الإيصال على واتساب
                 </a>
               </li>
+              {cardReady ? (
+                <li className="rounded-3xl border border-line bg-surface p-6">
+                  <h2 className="font-display text-2xl font-black">أو ادفع بالبطاقة</h2>
+                  <p className="mt-2 text-sm leading-7 text-muted">الدفع بالبطاقة تجريبي لحد ما حساب Paymob يبقى على وضع التشغيل.</p>
+                  <form action={startPaymob} className="mt-4">
+                    <input type="hidden" name="slug" value={course.slug} />
+                    <button type="submit" className={buttonClass}>
+                      ادفع {price} ج.م
+                    </button>
+                  </form>
+                </li>
+              ) : null}
               <li className="rounded-3xl border border-line bg-surface p-6">
                 <h2 className="font-display text-2xl font-black">
-                  <span className="me-3 text-accent">3</span>هنراجع ونفعّل
+                  <span className="me-3 text-accent">3</span>ابدأ التعلم
                 </h2>
                 <p className="mt-2 text-base leading-7 text-muted">
-                  بنراجع التحويل ونرد عليك في أقرب وقت، وبعدها بيتفتح لك الكورس.
-                </p>
-              </li>
-              <li className="rounded-3xl border border-line bg-surface p-6">
-                <h2 className="font-display text-2xl font-black">
-                  <span className="me-3 text-accent">4</span>ابدأ التعلم
-                </h2>
-                <p className="mt-2 text-base leading-7 text-muted">
-                  لو احتجت أي مساعدة كلمنا على {CONTACT.phoneDisplay}.
+                  بعد تأكيد التحويل الكورس يظهر في حسابك. للمساعدة: {CONTACT.phoneDisplay}
                 </p>
               </li>
             </ol>
 
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <div className="rounded-3xl border border-[var(--tc-line)] bg-surface p-6">
-                <span className="rounded-full bg-[var(--tc-soft)] px-3 py-1 text-sm font-bold text-[var(--tc)]">
-                  {track.title}
-                </span>
+                <span className="rounded-full bg-[var(--tc-soft)] px-3 py-1 text-sm font-bold text-[var(--tc)]">{track.title}</span>
                 <h2 className="font-display mt-4 text-2xl leading-snug font-black">{course.title}</h2>
                 <dl className="mt-5 space-y-3 text-base">
                   <div className="flex justify-between border-b border-line pb-3">
@@ -141,7 +161,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
                   </div>
                 </dl>
                 <p className="mt-5 text-sm leading-6 text-muted">
-                  السعر مبدئي. وفيه استرجاع خلال 7 أيام بشروط، اقرا{" "}
+                  السعر بالجنيه. الاسترجاع خلال 7 أيام بشروط، اقرا{" "}
                   <Link href="/refund" className="text-accent underline">
                     سياسة الاسترجاع
                   </Link>
