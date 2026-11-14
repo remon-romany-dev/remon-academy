@@ -12,7 +12,7 @@ import { SiteHeader } from "@/components/site/header";
 import { JsonLd } from "@/components/site/json-ld";
 import { TrackVisual } from "@/components/visuals/track-visual";
 import { LessonPlayer } from "@/components/lesson/player";
-import { whatsappLink } from "@/content/contact";
+import { PAYMENT, whatsappLink } from "@/content/contact";
 import { courses, formatEgp, SITE_NAME, SITE_URL, trackById } from "@/content/site";
 import { getCatalog, getCourse } from "@/lib/catalog";
 
@@ -267,6 +267,9 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
                         {formatEgp(course.listPriceEgp - course.priceEgp)}
                       </span>
                     ) : null}
+                    <span className="mt-1 block text-sm font-medium text-muted">
+                      إنستا باي {PAYMENT.instapayAddress} · فودافون كاش {PAYMENT.vodafoneCashNumber}
+                    </span>
                   </dd>
                 </div>
               </dl>

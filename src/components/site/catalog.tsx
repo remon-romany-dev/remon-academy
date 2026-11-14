@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { TrackVisual } from "@/components/visuals/track-visual";
 import { Reveal } from "@/components/ui/reveal";
-import { whatsappLink } from "@/content/contact";
+import { PAYMENT, whatsappLink } from "@/content/contact";
 import { getCatalog } from "@/lib/catalog";
 import { formatEgp, trackById, tracks, type Track, type TrackId } from "@/content/site";
 
@@ -40,7 +40,11 @@ const wide: Record<TrackId, boolean> = {
   "data-science": false,
 };
 
-/** أبرز 8 في عرض «الكل»، كورس من كل مسار. */
+const badges: Record<string, string> = {
+  "fullstack-react-node": "الأكثر طلبًا",
+  "ui-ux": "للمبتدئ",
+  "graphic-design": "بورتفوليو",
+};
 const previewAll = [
   "fullstack-react-node",
   "ui-ux",
@@ -181,6 +185,7 @@ export async function Catalog() {
             <div className="max-w-2xl">
               <p className="mb-3 text-base font-bold text-accent">الكورسات</p>
               <h2 className="font-display text-4xl leading-tight font-black sm:text-5xl">ابدأ بأول درس ببلاش</h2>
+              <p className="mt-3 text-base text-muted">ظاهر 8 من مسارات مختلفة. الباقي بزرار «اعرض الباقي»، ومفيش كورس اتشال.</p>
             </div>
             <p className="text-base text-muted">{courseCountLabel(courses.length)}</p>
           </Reveal>
@@ -224,8 +229,13 @@ export async function Catalog() {
                   >
                     {course.hours}
                   </span>
-                  <span className="relative w-fit rounded-full bg-[var(--tc-soft)] px-3 py-1 text-sm font-bold text-[var(--tc)]">
-                    {track.title}
+                  <span className="relative flex flex-wrap gap-2">
+                    <span className="w-fit rounded-full bg-[var(--tc-soft)] px-3 py-1 text-sm font-bold text-[var(--tc)]">
+                      {track.title}
+                    </span>
+                    {badges[course.slug] ? (
+                      <span className="w-fit rounded-full border border-line px-3 py-1 text-sm font-bold">{badges[course.slug]}</span>
+                    ) : null}
                   </span>
                   <h3 className="font-display mt-6 text-2xl leading-snug font-black">
                     <Link
@@ -248,6 +258,9 @@ export async function Catalog() {
                       {course.listPriceEgp && course.listPriceEgp > course.priceEgp ? (
                         <span className="mt-1 block text-sm text-muted line-through">{formatEgp(course.listPriceEgp)}</span>
                       ) : null}
+                      <span className="mt-1 block text-xs text-muted">
+                        إنستا باي {PAYMENT.instapayAddress} · فودافون كاش {PAYMENT.vodafoneCashNumber}
+                      </span>
                     </div>
                     <span
                       className="flex size-11 items-center justify-center rounded-full bg-[var(--tc)] text-accent-ink"
