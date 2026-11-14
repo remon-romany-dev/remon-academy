@@ -16,7 +16,7 @@ export function Hero() {
           </p>
           <h1 className="font-display leading-[1.2] font-black">
             <span className="mb-5 block text-base leading-snug font-bold text-accent sm:text-xl">
-              كورسات برمجة وتصميم وتسويق وذكاء اصطناعي
+              كورسات برمجة وتصميم وتسويق وذكاء اصطناعي وIT
             </span>
             <span className="hero-rise block text-[3.1rem] sm:text-7xl lg:text-[5.4rem]">اتعلّم مهارة</span>
             <span

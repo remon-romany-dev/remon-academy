@@ -21,20 +21,49 @@ function courseCountLabel(count: number): string {
 /** تخطيط الـ Bento: عرض كل كارت على الشاشة الكبيرة. */
 const spans: Record<TrackId, string> = {
   programming: "lg:col-span-4",
-  ai: "lg:col-span-2",
+  it: "lg:col-span-2",
   design: "lg:col-span-2",
   marketing: "lg:col-span-4",
-  "data-analysis": "lg:col-span-3",
-  "data-science": "lg:col-span-3",
+  ai: "lg:col-span-2",
+  "data-analysis": "lg:col-span-2",
+  "data-science": "lg:col-span-2",
 };
 
 const wide: Record<TrackId, boolean> = {
   programming: true,
-  ai: false,
+  it: false,
   design: false,
   marketing: true,
+  ai: false,
   "data-analysis": false,
   "data-science": false,
+};
+
+/** أبرز 8 في عرض «الكل»، كورس من كل مسار. */
+const previewAll = [
+  "fullstack-react-node",
+  "ui-ux",
+  "graphic-design",
+  "digital-marketing",
+  "applied-ai",
+  "data-bi",
+  "data-science",
+  "ccna",
+] as const;
+
+/** أول 8 جوه المسار الطويل. المسارات الأقصر تتعرض كاملة. */
+const previewTrack: Partial<Record<TrackId, readonly string[]>> = {
+  programming: [
+    "programming-fundamentals",
+    "frontend-react",
+    "fullstack-react-node",
+    "backend-nodejs",
+    "flutter",
+    "android-kotlin",
+    "qa-automation",
+    "wordpress",
+  ],
+  it: ["icdl", "pc-support", "network-fundamentals", "ccna", "cybersecurity-soc", "web-pentest", "embedded-systems", "iot"],
 };
 
 function TrackCard({ track, index, count }: { track: Track; index: number; count: number }) {
@@ -93,15 +122,36 @@ const pills = [{ id: "all", title: "الكل", hue: 145 }, ...tracks.map(({ id, 
  * الكتالوج بالكامل Server Component. الفلترة بـ CSS (:target + :has) من غير JS،
  * فالروابط تتفتح وتتفهرس والفلتر يشتغل حتى لو الجافاسكريبت وقع.
  */
+function previewFlags(courses: { slug: string; track: TrackId }[]): Map<string, { restAll: boolean; restTrack: boolean }> {
+  const lead = new Set<string>();
+  for (const track of tracks) {
+    const inTrack = courses.filter((course) => course.track === track.id);
+    const preferred = (previewTrack[track.id] ?? []).filter((slug) => inTrack.some((course) => course.slug === slug));
+    const rest = inTrack.map((course) => course.slug).filter((slug) => !preferred.includes(slug));
+    for (const slug of [...preferred, ...rest].slice(0, 8)) {
+      lead.add(slug);
+    }
+  }
+  const featured = new Set<string>(previewAll);
+  return new Map(
+    courses.map((course) => [
+      course.slug,
+      { restAll: !featured.has(course.slug), restTrack: !lead.has(course.slug) },
+    ]),
+  );
+}
+
 export async function Catalog() {
   const courses = await getCatalog();
+  const flags = previewFlags(courses);
+  const hiddenOnOpen = courses.some((course) => flags.get(course.slug)?.restAll || flags.get(course.slug)?.restTrack);
   return (
     <>
       <section id="tracks" className="defer mx-auto max-w-7xl px-5 py-20 md:px-8 lg:py-28">
         <Reveal className="mb-12 max-w-2xl">
           <p className="mb-3 text-base font-bold text-accent">المسارات</p>
           <h2 className="font-display text-4xl leading-tight font-black sm:text-5xl">
-            ست مسارات، وكل واحد بيوصلك لشغلانة
+            سبع مسارات، وكل واحد بيوصلك لشغلانة
           </h2>
           <p className="mt-4 text-lg leading-8 text-muted">
             اضغط على المسار اللي يشدّك وهنفرزلك الكورسات اللي تحته. وتحليل البيانات غير علم البيانات، فكل واحد ليه مسار لوحده.
@@ -144,16 +194,22 @@ export async function Catalog() {
             ))}
           </nav>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {courses.map((course, index) => {
-              const track = trackById(course.track);
-              return (
-                <article
-                  key={course.slug}
-                  data-track={course.track}
-                  style={hueStyle(track.hue, { "--d": `${(index % 4) * 70}ms` } as CSSProperties)}
-                  className="course spot tc card-in relative flex flex-col overflow-hidden rounded-3xl p-6"
-                >
+          {hiddenOnOpen ? (
+            <>
+              <input id="show-rest" type="checkbox" className="show-rest-input" />
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {courses.map((course, index) => {
+                  const track = trackById(course.track);
+                  const flag = flags.get(course.slug);
+                  return (
+                    <article
+                      key={course.slug}
+                      data-track={course.track}
+                      {...(flag?.restAll ? { "data-rest-all": "" } : {})}
+                      {...(flag?.restTrack ? { "data-rest-track": "" } : {})}
+                      style={hueStyle(track.hue, { "--d": `${(index % 4) * 70}ms` } as CSSProperties)}
+                      className="course spot tc card-in relative flex flex-col overflow-hidden rounded-3xl p-6"
+                    >
                   <span
                     aria-hidden
                     className="font-display pointer-events-none absolute -top-3 end-4 text-8xl leading-none font-black text-[var(--tc)] opacity-[0.12]"
@@ -191,10 +247,16 @@ export async function Catalog() {
                       </svg>
                     </span>
                   </div>
-                </article>
-              );
-            })}
-          </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <label htmlFor="show-rest" className="show-rest mx-auto mt-8 flex min-h-12 w-fit cursor-pointer items-center rounded-full bg-accent px-6 text-base font-bold text-accent-ink">
+                <span className="show-rest-more">اعرض الباقي</span>
+                <span className="show-rest-less">عرض أقل</span>
+              </label>
+            </>
+          ) : null}
           <p className="mt-8 text-sm text-muted">الأسعار بالجنيه، وعلى سعر نفس البرنامج في السوق حاليًا.</p>
         </div>
       </section>

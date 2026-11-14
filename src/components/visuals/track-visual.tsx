@@ -183,11 +183,56 @@ function DataScienceVisual() {
   );
 }
 
+function ItVisual() {
+  const nodes: [number, number][] = [
+    [70, 78],
+    [150, 48],
+    [230, 86],
+    [320, 52],
+    [110, 160],
+    [200, 176],
+    [300, 164],
+  ];
+  const links: [number, number][] = [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [0, 4],
+    [4, 5],
+    [5, 6],
+    [2, 5],
+    [3, 6],
+  ];
+  return (
+    <svg viewBox="0 0 400 240" fill="none" aria-hidden className="h-full w-full">
+      {links.map(([a, b]) => (
+        <path
+          key={`${a}-${b}`}
+          className="v-dash"
+          d={`M${nodes[a][0]} ${nodes[a][1]}L${nodes[b][0]} ${nodes[b][1]}`}
+          style={stroke}
+          strokeOpacity="0.45"
+        />
+      ))}
+      {nodes.map(([x, y], i) => (
+        <circle key={`${x}-${y}`} className="v-pulse" style={{ ...fill, animationDelay: `${i * 0.2}s` }} cx={x} cy={y} r={i === 2 ? 12 : 8} />
+      ))}
+      <rect x="250" y="96" width="92" height="36" rx="18" className="fill-black/40" style={stroke} strokeWidth="2" />
+      <text x="268" y="119" fontSize="14" fontWeight="700" style={fill} fontFamily="monospace">
+        CCNA
+      </text>
+    </svg>
+  );
+}
+
 export function TrackVisual({ track, className }: TrackVisualProps) {
   let body;
   switch (track) {
     case "programming":
       body = <CodeVisual />;
+      break;
+    case "it":
+      body = <ItVisual />;
       break;
     case "design":
       body = <DesignVisual />;
