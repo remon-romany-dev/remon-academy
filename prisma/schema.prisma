@@ -41,9 +41,10 @@ model Course {
   slug        String       @unique @db.VarChar(120)
   title       String       @db.VarChar(180)
   track       String       @db.VarChar(40)
-  hours       Int
-  priceEgp    Int
-  attendance  String       @db.VarChar(80)
+  hours        Int
+  priceEgp     Int
+  listPriceEgp Int?
+  attendance   String       @db.VarChar(80)
   summary     String       @db.Text
   audience    String       @db.Text
   outcomes    Json

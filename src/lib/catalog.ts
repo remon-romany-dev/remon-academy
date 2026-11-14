@@ -42,6 +42,7 @@ export function toPublicCourse(row: CourseRow): PublicCourse | null {
     track: row.track,
     hours: row.hours,
     priceEgp: row.priceEgp,
+    listPriceEgp: row.listPriceEgp ?? undefined,
     attendance: row.attendance,
     summary: row.summary,
     audience: row.audience,

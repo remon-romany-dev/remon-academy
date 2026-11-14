@@ -35,7 +35,7 @@ export function Hero() {
             </span>
           </h1>
           <p className="mt-8 max-w-xl text-lg leading-8 text-muted sm:text-xl">
-            تتعلم على إيد ريمون، مطوّر ومصمم شغّال في السوق من <span dir="ltr">7+</span> سنين. أول درس مجاني من غير التزام، وبعد الدفع الكورس يتفتح جوه الموقع.
+            تتعلم على إيد ريمون، مؤسس الأكاديمية ومطوّر ومصمم شغّال في السوق من <span dir="ltr">7+</span> سنين. أول درس مجاني من غير التزام، وبعد الدفع الكورس يتفتح جوه الموقع.
           </p>
           <ul className="mt-6 flex flex-wrap gap-2.5">
             {pills.map((pill) => (
@@ -72,7 +72,7 @@ export function Hero() {
             />
             <p className="text-sm leading-6 text-muted">
               <strong className="block text-base text-foreground">ريمون رومانى</strong>
-              مطوّر ومصمم ويب · <span dir="ltr">30+</span> مشروع لماركات وشركات
+              مؤسس الأكاديمية · مطوّر ومصمم ويب · <span dir="ltr">30+</span> مشروع لماركات وشركات
             </p>
           </div>
         </div>
