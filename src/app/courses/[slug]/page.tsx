@@ -259,7 +259,15 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-muted">السعر</dt>
-                  <dd className="font-bold">{formatEgp(course.priceEgp)} ج.م</dd>
+                  <dd className="text-end font-bold">
+                    {formatEgp(course.priceEgp)} ج.م
+                    {course.listPriceEgp && course.listPriceEgp > course.priceEgp ? (
+                      <span className="mt-1 block text-sm font-medium text-muted">
+                        القائمة المرجعية {formatEgp(course.listPriceEgp)} — أقل بـ{" "}
+                        {formatEgp(course.listPriceEgp - course.priceEgp)}
+                      </span>
+                    ) : null}
+                  </dd>
                 </div>
               </dl>
             </div>

@@ -2,7 +2,7 @@
 import { HeroStage } from "@/components/site/hero-stage";
 import { Magnetic } from "@/components/ui/magnetic";
 
-const pills = ["أول درس مجاني", "أونلاين أو حضوري", "شهادة إتمام"];
+const pills = ["أول درس مجاني", "لو مش عاجبك مفيش التزام", "أونلاين أو حضوري", "شهادة إتمام"];
 
 export function Hero() {
   return (
@@ -35,7 +35,7 @@ export function Hero() {
             </span>
           </h1>
           <p className="mt-8 max-w-xl text-lg leading-8 text-muted sm:text-xl">
-            تتعلم على إيد مدرّب شغّال في السوق من <span dir="ltr">7+</span> سنين. شوف أول درس مجانًا، وبعد الدفع الكورس يتفتح لك جوه الموقع.
+            تتعلم على إيد ريمون، مطوّر ومصمم شغّال في السوق من <span dir="ltr">7+</span> سنين. أول درس مجاني من غير التزام، وبعد الدفع الكورس يتفتح جوه الموقع.
           </p>
           <ul className="mt-6 flex flex-wrap gap-2.5">
             {pills.map((pill) => (

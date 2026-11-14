@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { SiteHeader } from "@/components/site/header";
 import { Hero } from "@/components/site/hero";
 import { HowItWorks } from "@/components/site/how-it-works";
+import { Bundles, StartPaths } from "@/components/site/offers";
 import { Instructor } from "@/components/site/instructor";
 import { JsonLd } from "@/components/site/json-ld";
 import { Stats } from "@/components/site/stats";
@@ -100,7 +101,9 @@ export default async function HomePage() {
       <main>
         <Hero />
         <Stats />
+        <StartPaths />
         <Catalog />
+        <Bundles />
         <HowItWorks />
         <Instructor />
         <Testimonials />

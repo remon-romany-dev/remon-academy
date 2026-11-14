@@ -9,7 +9,7 @@ export async function SiteFooter() {
   const courses = await getCatalog();
   return (
     <footer className="defer border-t border-line bg-surface/50">
-      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 md:px-8 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 md:px-8 lg:grid-cols-[1fr_0.7fr_1.6fr_0.7fr]">
         <div>
           <Logo />
           <p className="mt-4 max-w-xs text-base leading-7 text-muted">
@@ -29,16 +29,26 @@ export async function SiteFooter() {
           </ul>
         </nav>
         <nav aria-label="الكورسات">
-          <h2 className="font-display mb-4 text-lg font-black">الكورسات</h2>
-          <ul className="space-y-1">
-            {courses.map((course) => (
-              <li key={course.slug}>
-                <Link href={`/courses/${course.slug}`} className="block py-1.5 text-sm text-muted hover:text-accent">
-                  {course.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <h2 className="font-display mb-4 text-lg font-black">كل الكورسات</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {tracks.map((track) => {
+              const items = courses.filter((course) => course.track === track.id);
+              return (
+                <details key={track.id} className="rounded-2xl border border-line px-4 py-2">
+                  <summary className="cursor-pointer py-2 font-bold">{track.title}</summary>
+                  <ul className="pb-2">
+                    {items.map((course) => (
+                      <li key={course.slug}>
+                        <Link href={`/courses/${course.slug}`} className="block py-1.5 text-sm text-muted hover:text-accent">
+                          {course.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              );
+            })}
+          </div>
         </nav>
         <nav aria-label="روابط مهمة">
           <h2 className="font-display mb-4 text-lg font-black">روابط</h2>

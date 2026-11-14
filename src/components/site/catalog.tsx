@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { TrackVisual } from "@/components/visuals/track-visual";
 import { Reveal } from "@/components/ui/reveal";
+import { whatsappLink } from "@/content/contact";
 import { getCatalog } from "@/lib/catalog";
 import { formatEgp, trackById, tracks, type Track, type TrackId } from "@/content/site";
 
@@ -70,10 +71,9 @@ function TrackCard({ track, index, count }: { track: Track; index: number; count
   const isWide = wide[track.id];
   return (
     <Reveal delay={index * 60} className={spans[track.id]}>
-      <a
-        href={`#f-${track.id}`}
+      <div
         style={hueStyle(track.hue)}
-        className={`spot tc group flex h-full flex-col gap-5 overflow-hidden rounded-[1.75rem] p-6 sm:p-7 ${
+        className={`spot tc group relative flex h-full flex-col gap-5 overflow-hidden rounded-[1.75rem] p-6 sm:p-7 ${
           isWide ? "lg:flex-row lg:items-center lg:gap-8" : ""
         }`}
       >
@@ -91,7 +91,7 @@ function TrackCard({ track, index, count }: { track: Track; index: number; count
               </li>
             ))}
           </ul>
-          <span className="mt-6 inline-flex items-center gap-2 text-base font-bold lg:mt-auto lg:pt-6">
+          <a href={`#f-${track.id}`} className="mt-6 inline-flex items-center gap-2 text-base font-bold after:absolute after:inset-0 after:content-[''] lg:mt-auto lg:pt-6">
             {courseCountLabel(count)}
             <svg
               width="18"
@@ -103,7 +103,15 @@ function TrackCard({ track, index, count }: { track: Track; index: number; count
             >
               <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </span>
+          </a>
+          <a
+            href={whatsappLink(`أهلاً، عايز أعرف أنسب كورس في مسار ${track.title}`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative z-10 mt-3 inline-flex min-h-11 w-fit items-center text-sm font-bold text-[var(--tc)]"
+          >
+            اسأل عن المسار على واتساب
+          </a>
         </div>
         <TrackVisual
           track={track.id}
@@ -111,7 +119,7 @@ function TrackCard({ track, index, count }: { track: Track; index: number; count
             isWide ? "aspect-[5/3] lg:w-[52%]" : "aspect-[5/3]"
           }`}
         />
-      </a>
+      </div>
     </Reveal>
   );
 }
@@ -237,6 +245,9 @@ export async function Catalog() {
                       <span className="font-display text-3xl font-black">
                         {formatEgp(course.priceEgp)} <span className="text-base font-bold text-muted">ج.م</span>
                       </span>
+                      {course.listPriceEgp && course.listPriceEgp > course.priceEgp ? (
+                        <span className="mt-1 block text-sm text-muted line-through">{formatEgp(course.listPriceEgp)}</span>
+                      ) : null}
                     </div>
                     <span
                       className="flex size-11 items-center justify-center rounded-full bg-[var(--tc)] text-accent-ink"
@@ -257,7 +268,9 @@ export async function Catalog() {
               </label>
             </>
           ) : null}
-          <p className="mt-8 text-sm text-muted">الأسعار بالجنيه، وعلى سعر نفس البرنامج في السوق حاليًا.</p>
+          <p className="mt-8 text-sm text-muted">
+            الأسعار بالجنيه، وأقل من القائمة المرجعية المنشورة لنفس البرنامج بألف أو ألفين. الكورس القصير اللي سعره أصلًا تحت ٤٠٠٠ فضل زي ما هو.
+          </p>
         </div>
       </section>
     </>
