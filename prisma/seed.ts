@@ -6,8 +6,42 @@ const prisma = new PrismaClient();
 
 async function main() {
   for (const [index, course] of courses.entries()) {
-    const existing = await prisma.course.findUnique({ where: { slug: course.slug } });
+    const existing = await prisma.course.findUnique({
+      where: { slug: course.slug },
+      include: { lessons: true },
+    });
     if (existing) {
+      await prisma.course.update({
+        where: { slug: course.slug },
+        data: {
+          title: course.title,
+          track: course.track,
+          hours: course.hours,
+          priceEgp: course.priceEgp,
+          attendance: course.attendance,
+          summary: course.summary,
+          audience: course.audience,
+          outcomes: course.outcomes,
+          sort: index,
+        },
+      });
+      const hasVideo = existing.lessons.some((lesson) => lesson.bunnyVideoId);
+      const sameLessons =
+        existing.lessons.length === course.modules.length &&
+        [...existing.lessons]
+          .sort((a, b) => a.position - b.position)
+          .every((lesson, lessonIndex) => lesson.title === course.modules[lessonIndex]);
+      if (!hasVideo && !sameLessons) {
+        await prisma.lesson.deleteMany({ where: { courseId: existing.id } });
+        await prisma.lesson.createMany({
+          data: course.modules.map((title, position) => ({
+            courseId: existing.id,
+            position: position + 1,
+            title,
+            isFree: position === 0,
+          })),
+        });
+      }
       continue;
     }
     await prisma.course.create({
