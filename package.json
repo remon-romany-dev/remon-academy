@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build --webpack",
     "start": "node scripts/start.mjs",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts"
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "@tailwindcss/postcss": "^4.3.3",
     "bcryptjs": "^3.0.3",
     "motion": "^14.14.0",
     "next": "16.4.6",

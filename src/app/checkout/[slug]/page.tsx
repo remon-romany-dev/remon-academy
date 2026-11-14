@@ -39,7 +39,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
   const session = await auth();
   const track = trackById(course.track);
   const price = formatEgp(course.priceEgp);
-  const receiptMessage = `أهلاً، حوّلت ${price} جنيه على إنستا باي 01065344806 للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
+  const receiptMessage = `أهلاً، حوّلت ${price} جنيه على إنستا باي ${PAYMENT.instapayAddress} للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
   const payNote = search.pay === "method" ? "اختار إنستا باي أو فودافون كاش." : null;
 
   return (
@@ -67,7 +67,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
                 <p dir="ltr" className="mt-4 select-all font-mono text-3xl font-black tracking-wide">
                   {PAYMENT.instapayAddress}
                 </p>
-                <p className="mt-2 text-sm text-muted">نفس الرقم عليه فودافون كاش: {PAYMENT.vodafoneCashNumber}</p>
+                <p className="mt-2 text-sm text-muted">فودافون كاش على رقم تاني: {PAYMENT.vodafoneCashNumber}</p>
               </li>
               <li className="rounded-3xl border border-line bg-surface p-6">
                 <h2 className="font-display text-2xl font-black">

@@ -32,7 +32,11 @@ export function ContactSection() {
           <p className="mb-3 text-base font-bold text-accent">تواصل</p>
           <h2 className="font-display text-4xl leading-tight font-black sm:text-5xl">عندك سؤال قبل ما تشترك؟</h2>
           <p className="mt-4 text-lg leading-8 text-muted">
-            كلمني مباشرة وهرد عليك بنفسي: تساعدك تختار الكورس المناسب، أو تعرف المواعيد والأسعار. الدفع دلوقتي بإنستا باي أو فودافون كاش على{" "}
+            كلمني مباشرة وهرد عليك بنفسي: تساعدك تختار الكورس المناسب، أو تعرف المواعيد والأسعار. إنستا باي على{" "}
+            <span dir="ltr" className="font-bold text-foreground">
+              {PAYMENT.instapayAddress}
+            </span>{" "}
+            وفودافون كاش على{" "}
             <span dir="ltr" className="font-bold text-foreground">
               {PAYMENT.vodafoneCashNumber}
             </span>

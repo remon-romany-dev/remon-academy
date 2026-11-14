@@ -8,9 +8,9 @@ export const CONTACT = {
   portfolio: "https://remonromany.com",
 } as const;
 
-/** إنستا باي وفودافون كاش على رقم ريمون. */
+/** إنستا باي على رقم الموبايل، وفودافون كاش على الرقم التاني. */
 export const PAYMENT = {
-  instapayAddress: "01065344806",
+  instapayAddress: "01270146047",
   vodafoneCashNumber: "01065344806",
 } as const;
 
