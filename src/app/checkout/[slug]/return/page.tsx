@@ -36,7 +36,7 @@ export default async function PaymentReturnPage({
     <PageFrame>
       <h1 className="font-display text-4xl font-black">{paid ? "الدفع اتأكد" : "بنراجع الدفع"}</h1>
       <p className="mt-4 text-base leading-7 text-muted">
-        {paid ? "الكورس اتفتح في حسابك." : "لو حوّلت بإنستا باي، هنفتح الكورس بعد مراجعة الإيصال."}
+        {paid ? "الكورس اتفتح في حسابك." : "لو حوّلت بإنستا باي أو فودافون كاش، هنفتح الكورس بعد مراجعة الإيصال."}
       </p>
       <Link href={paid ? "/account" : `/courses/${slug}`} className="mt-8 inline-flex font-bold text-accent">
         {paid ? "روح لحسابي" : "رجوع للكورس"}

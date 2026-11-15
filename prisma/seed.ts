@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { courses } from "../src/content/site";
 
 const prisma = new PrismaClient();
+const TEMP_VIDEO = "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ";
 
 async function main() {
   for (const [index, course] of courses.entries()) {
@@ -68,6 +69,8 @@ async function main() {
       },
     });
   }
+
+  await prisma.lesson.updateMany({ where: { bunnyVideoId: null }, data: { bunnyVideoId: TEMP_VIDEO } });
 
   const email = process.env.ADMIN_EMAIL?.toLowerCase();
   const password = process.env.ADMIN_PASSWORD;

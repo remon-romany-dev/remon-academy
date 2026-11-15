@@ -10,6 +10,7 @@ import { requireAdmin } from "@/lib/guards";
 import { cairoDay, cairoDayRange } from "@/lib/day";
 import { formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
+import type { PaymentStatus } from "@prisma/client";
 
 export const instant = false;
 
@@ -23,6 +24,21 @@ const providerLabel = {
   vodafone: "فودافون كاش",
   paymob: "Paymob",
 } as const;
+
+function enrollmentStatusLabel(status: PaymentStatus): string {
+  switch (status) {
+    case "paid":
+      return "مفتوح";
+    case "pending":
+      return "مستني الدفع";
+    case "failed":
+      return "الدفع مرفوض";
+    default: {
+      const neverStatus: never = status;
+      return neverStatus;
+    }
+  }
+}
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ db?: string; password?: string }> }) {
   await connection();
@@ -59,9 +75,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         orderBy: { startsAt: "asc" },
       })
     : [];
-  const roster = prisma
-    ? await prisma.enrollment.findMany({
-        include: { user: true, course: true },
+  const students = prisma
+    ? await prisma.user.findMany({
+        where: { role: "student" },
+        include: { enrollments: { include: { course: true }, orderBy: { createdAt: "desc" } } },
         orderBy: { createdAt: "desc" },
         take: 40,
       })
@@ -188,19 +205,27 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       <h2 className="font-display mt-12 text-2xl font-black">الطلاب</h2>
       <ul className="mt-4 space-y-3">
-        {roster.length === 0 ? <li className="text-sm text-muted">لسه مفيش طلاب.</li> : null}
-        {roster.map((enrollment) => (
-          <li key={enrollment.id} className="rounded-3xl border border-line bg-surface p-5">
-            <p className="font-bold">
-              {enrollment.user.name} · {enrollment.course.title}
+        {students.length === 0 ? <li className="text-sm text-muted">لسه مفيش طلاب مسجّلين.</li> : null}
+        {students.map((student) => (
+          <li key={student.id} className="rounded-3xl border border-line bg-surface p-5">
+            <p className="font-bold">{student.name}</p>
+            <p className="mt-1 text-sm text-muted" dir="ltr">
+              {student.email}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {studyModeLabel(enrollment.mode)} · {enrollment.status === "paid" ? "مفتوح" : "مستني الدفع"}
-              {enrollment.user.phone ? ` · ${enrollment.user.phone}` : ""}
+              {student.phone ? student.phone : "من غير موبايل"} · سجّل {formatCairo(student.createdAt)}
             </p>
-            <p className="mt-1 text-sm text-muted" dir="ltr">
-              {enrollment.user.email}
-            </p>
+            {student.enrollments.length === 0 ? (
+              <p className="mt-2 text-sm text-muted">لسه مشتركش في كورس.</p>
+            ) : (
+              <ul className="mt-3 space-y-1 text-sm">
+                {student.enrollments.map((enrollment) => (
+                  <li key={enrollment.id}>
+                    {enrollment.course.title} · {studyModeLabel(enrollment.mode)} · {enrollmentStatusLabel(enrollment.status)}
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>

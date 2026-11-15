@@ -40,7 +40,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
   const session = await auth();
   const track = trackById(course.track);
   const price = formatEgp(course.priceEgp);
-  const receiptMessage = `أهلاً، حوّلت ${price} جنيه على إنستا باي ${PAYMENT.instapayAddress} للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
+  const receiptMessage = `أهلاً، حوّلت ${price} جنيه للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
   const allowsHall = courseAllowsHall(course.attendance);
   const payNote = search.pay === "method" ? "اختار إنستا باي أو فودافون كاش." : null;
 
@@ -54,22 +54,32 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
             ← رجوع لصفحة الكورس
           </Link>
           <h1 className="font-display mt-3 text-4xl leading-tight font-black sm:text-5xl">الاشتراك في {course.title}</h1>
-          <p className="mt-3 text-lg text-muted">حوّل على إنستا باي، وبعد المراجعة الكورس يتفتح في حسابك.</p>
+          <p className="mt-3 text-lg text-muted">حوّل على إنستا باي أو فودافون كاش، وبعد المراجعة الكورس يتفتح في حسابك.</p>
           {payNote ? <p className="mt-4 rounded-2xl border border-line bg-surface p-4 text-sm">{payNote}</p> : null}
 
           <div className="mt-10 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
             <ol className="space-y-4">
               <li className="rounded-3xl border border-[var(--tc-line)] bg-surface p-6">
                 <h2 className="font-display text-2xl font-black">
-                  <span className="me-3 text-accent">1</span>إنستا باي
+                  <span className="me-3 text-accent">1</span>التحويل
                 </h2>
                 <p className="mt-2 text-base leading-7 text-muted">
-                  حوّل <strong className="text-foreground">{price} ج.م</strong> على الرقم ده:
+                  حوّل <strong className="text-foreground">{price} ج.م</strong> على واحد من الرقمين:
                 </p>
-                <p dir="ltr" className="mt-4 select-all font-mono text-3xl font-black tracking-wide">
-                  {PAYMENT.instapayAddress}
-                </p>
-                <p className="mt-2 text-sm text-muted">فودافون كاش على رقم تاني: {PAYMENT.vodafoneCashNumber}</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-line p-4">
+                    <p className="text-sm font-bold">إنستا باي</p>
+                    <p dir="ltr" className="mt-2 select-all font-mono text-2xl font-black tracking-wide">
+                      {PAYMENT.instapayAddress}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-line p-4">
+                    <p className="text-sm font-bold">فودافون كاش</p>
+                    <p dir="ltr" className="mt-2 select-all font-mono text-2xl font-black tracking-wide">
+                      {PAYMENT.vodafoneCashNumber}
+                    </p>
+                  </div>
+                </div>
               </li>
               <li className="rounded-3xl border border-line bg-surface p-6">
                 <h2 className="font-display text-2xl font-black">
