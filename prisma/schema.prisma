@@ -24,10 +24,21 @@ enum PaymentStatus {
   failed
 }
 
+enum MeetingKind {
+  online
+  hall
+}
+
+enum StudyMode {
+  online
+  hall
+}
+
 model User {
   id           String           @id @default(cuid())
   name         String           @db.VarChar(120)
   email        String           @unique @db.VarChar(190)
+  phone        String?          @db.VarChar(20)
   passwordHash String           @db.VarChar(255)
   role         Role             @default(student)
   createdAt    DateTime         @default(now())
@@ -36,6 +47,7 @@ model User {
   progress     LessonProgress[]
   resets       PasswordReset[]
   submissions  Submission[]
+  attendance   Attendance[]
 }
 
 model Course {
@@ -58,6 +70,7 @@ model Course {
   enrollments Enrollment[]
   payments    Payment[]
   submissions Submission[]
+  meetings    ClassMeeting[]
 }
 
 model Lesson {
@@ -81,6 +94,7 @@ model Enrollment {
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   status    PaymentStatus @default(pending)
+  mode      StudyMode     @default(online)
   createdAt DateTime      @default(now())
 
   @@unique([userId, courseId])
@@ -136,6 +150,33 @@ model Submission {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, courseId])
+}
+
+model ClassMeeting {
+  id         String       @id @default(cuid())
+  courseId   String
+  course     Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title      String       @db.VarChar(180)
+  startsAt   DateTime
+  kind       MeetingKind
+  meetUrl    String?      @db.VarChar(300)
+  place      String?      @db.VarChar(180)
+  createdAt  DateTime     @default(now())
+  attendance Attendance[]
+
+  @@index([courseId, startsAt])
+}
+
+model Attendance {
+  id        String       @id @default(cuid())
+  meetingId String
+  userId    String
+  present   Boolean      @default(false)
+  meeting   ClassMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  markedAt  DateTime     @updatedAt
+
+  @@unique([meetingId, userId])
 }
 
 model DailyVisit {

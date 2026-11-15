@@ -39,6 +39,8 @@ export default async function CertificatePage({ params }: { params: Promise<{ sl
     notFound();
   }
   const issued = new Intl.DateTimeFormat("ar-EG", { dateStyle: "long", timeZone: "Africa/Cairo" }).format(new Date());
+  const student = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const name = student?.name ?? session.user.name;
 
   return (
     <PageFrame>
@@ -46,7 +48,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ sl
         <p className="text-sm font-bold text-accent">{SITE_NAME}</p>
         <h1 className="font-display mt-4 text-4xl font-black">شهادة إتمام</h1>
         <p className="mt-6 text-lg leading-8">
-          نشهد أن <strong>{session.user.name}</strong> أتمّ كورس <strong>{enrollment.course.title}</strong> وسلّم المشروع النهائي.
+          نشهد أن <strong>{name}</strong> أتمّ كورس <strong>{enrollment.course.title}</strong> وسلّم المشروع النهائي.
         </p>
         <p className="mt-3 text-sm text-muted">{issued}</p>
         <p className="mt-8 text-sm text-muted">ريمون رومانى · المدرّب</p>

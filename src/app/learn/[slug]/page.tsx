@@ -8,6 +8,7 @@ import { LessonPlayer } from "@/components/lesson/player";
 import { PageFrame } from "@/components/site/page-frame";
 import { whatsappLink } from "@/content/contact";
 import { bunnyEmbedUrl, getCourse, getCourseRecord } from "@/lib/catalog";
+import { canJoinMeeting, formatCairo } from "@/lib/meetings";
 import { auth } from "@/auth";
 import { getPrisma } from "@/lib/prisma";
 
@@ -43,6 +44,7 @@ export default async function LearnPage({
   let title = "";
   let lessons: LessonView[] = [];
   let paid = false;
+  let study: "online" | "hall" = "online";
 
   if (record) {
     if (!record.published && session?.user?.role !== "admin") {
@@ -61,6 +63,7 @@ export default async function LearnPage({
         where: { userId_courseId: { userId: session.user.id, courseId: record.id } },
       });
       paid = enrollment?.status === "paid";
+      study = enrollment?.mode ?? "online";
     }
   } else {
     const course = await getCourse(slug);
@@ -85,6 +88,16 @@ export default async function LearnPage({
   const completed = session?.user && prisma && !current.id.startsWith(`${slug}-`)
     ? Boolean(await prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: session.user.id, lessonId: current.id } } }))
     : false;
+  const nextMeeting = record && prisma && session?.user && (paid || session.user.role === "admin")
+    ? await prisma.classMeeting.findFirst({
+        where: {
+          courseId: record.id,
+          kind: study,
+          startsAt: { gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+        },
+        orderBy: { startsAt: "asc" },
+      })
+    : null;
 
   return (
     <PageFrame wide>
@@ -125,6 +138,20 @@ export default async function LearnPage({
             </div>
           ) : (
             <>
+              {nextMeeting ? (
+                <div className="mb-4 rounded-3xl border border-line bg-surface p-5">
+                  <p className="font-bold">{nextMeeting.title}</p>
+                  <p className="mt-1 text-sm text-muted">
+                    {formatCairo(nextMeeting.startsAt)}
+                    {nextMeeting.place ? ` · ${nextMeeting.place}` : ""}
+                  </p>
+                  {nextMeeting.meetUrl && canJoinMeeting(nextMeeting.startsAt) ? (
+                    <a href={nextMeeting.meetUrl} target="_blank" rel="noopener noreferrer" className={`${buttonClass} mt-4`}>
+                      ادخل الحصة
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
               <LessonPlayer title={current.title} embedUrl={bunnyEmbedUrl(current.bunnyVideoId)} />
               {!current.bunnyVideoId ? (
                 <a

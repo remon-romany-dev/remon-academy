@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
@@ -9,6 +10,7 @@ import { SITE_NAME } from "@/content/site";
 import { sendMail } from "@/lib/mail";
 import { safeNextPath } from "@/lib/paths";
 import { getPrisma } from "@/lib/prisma";
+import { phoneValue } from "@/lib/meetings";
 import { hashToken, newToken } from "@/lib/tokens";
 
 export type AuthState = { error: string } | null;
@@ -149,6 +151,26 @@ export async function changePassword(formData: FormData): Promise<void> {
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12) } });
   await prisma.passwordReset.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
   redirect("/account?password=ok");
+}
+
+export async function updateProfile(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login?next=/account");
+  }
+  const name = String(formData.get("name") ?? "").trim();
+  const rawPhone = String(formData.get("phone") ?? "");
+  const phone = phoneValue(rawPhone);
+  if (name.length < 2 || name.length > 120 || (rawPhone.trim() && !phone)) {
+    redirect("/account?profile=bad");
+  }
+  const prisma = getPrisma();
+  if (!prisma) {
+    redirect("/account?profile=off");
+  }
+  await prisma.user.update({ where: { id: session.user.id }, data: { name, phone } });
+  revalidatePath("/account");
+  redirect("/account?profile=ok");
 }
 
 export async function adminSetPassword(formData: FormData): Promise<void> {

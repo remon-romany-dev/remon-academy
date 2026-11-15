@@ -21,7 +21,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
     <PageFrame>
       <p className="mb-3 text-base font-bold text-accent">الحساب</p>
       <h1 className="font-display text-4xl font-black">سجّل حسابك</h1>
-      <p className="mt-3 text-base leading-7 text-muted">الحساب بيفتح لك الكورس بعد ما يتأكد الدفع.</p>
+      <p className="mt-3 text-base leading-7 text-muted">اكتب اسمك وإيميلك وكلمة سر. جيميل أو أي إيميل تاني، والحساب بيتفتح بعد تأكيد الدفع.</p>
       <AuthForm action={registerAction} submit="إنشاء الحساب" next={next} includeName />
       <p className="mt-6 text-sm text-muted">
         عندك حساب؟{" "}

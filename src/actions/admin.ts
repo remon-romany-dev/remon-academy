@@ -86,12 +86,13 @@ export async function updateCourse(formData: FormData): Promise<void> {
   const audience = String(formData.get("audience") ?? "").trim();
   const outcomes = lines(formData.get("outcomes"));
   const published = formData.get("published") === "on";
-  if (!title || !Number.isFinite(hours) || hours < 1 || !Number.isFinite(priceEgp) || priceEgp < 0) {
+  const attendance = String(formData.get("attendance") ?? "").trim();
+  if (!title || !Number.isFinite(hours) || hours < 1 || !Number.isFinite(priceEgp) || priceEgp < 0 || !attendance) {
     redirect(`/admin/courses/${slug}?error=1`);
   }
   await prisma.course.update({
     where: { slug },
-    data: { title, hours, priceEgp, summary, audience, outcomes, published },
+    data: { title, hours, priceEgp, summary, audience, outcomes, published, attendance },
   });
   refreshCourse(slug);
   redirect(`/admin/courses/${slug}`);

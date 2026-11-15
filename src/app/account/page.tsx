@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
-import { changePassword, logoutAction } from "@/actions/auth";
+import { changePassword, logoutAction, updateProfile } from "@/actions/auth";
 import { submitProject } from "@/actions/learning";
 import { buttonClass, fieldClass, ghostButtonClass } from "@/components/account/styles";
 import { PageFrame } from "@/components/site/page-frame";
 import { requireUser } from "@/lib/guards";
+import { canJoinMeeting, formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
 
 export const instant = false;
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sent?: string; project?: string; password?: string }>;
+  searchParams: Promise<{ sent?: string; project?: string; password?: string; profile?: string }>;
 }) {
   await connection();
   const session = await requireUser();
@@ -33,6 +34,15 @@ export default async function AccountPage({
     : [];
   const progress = prisma ? await prisma.lessonProgress.findMany({ where: { userId: session.user.id } }) : [];
   const submissions = prisma ? await prisma.submission.findMany({ where: { userId: session.user.id } }) : [];
+  const profile = prisma ? await prisma.user.findUnique({ where: { id: session.user.id } }) : null;
+  const courseIds = enrollments.map((enrollment) => enrollment.course.id);
+  const meetings = prisma && courseIds.length > 0
+    ? await prisma.classMeeting.findMany({
+        where: { courseId: { in: courseIds } },
+        include: { attendance: { where: { userId: session.user.id } } },
+        orderBy: { startsAt: "asc" },
+      })
+    : [];
   const done = new Set(progress.map((item) => item.lessonId));
   const submitted = new Map(submissions.map((item) => [item.courseId, item]));
   const passwordNote = {
@@ -43,13 +53,21 @@ export default async function AccountPage({
   } as const;
   const passwordKey = search.password;
   const passwordMessage = passwordKey === "ok" || passwordKey === "short" || passwordKey === "bad" || passwordKey === "off" ? passwordNote[passwordKey] : null;
+  const profileNote = {
+    ok: "بياناتك اتسجلت.",
+    bad: "راجع الاسم والموبايل.",
+    off: "تعديل البيانات مش متاح دلوقتي.",
+  } as const;
+  const profileKey = search.profile;
+  const profileMessage = profileKey === "ok" || profileKey === "bad" || profileKey === "off" ? profileNote[profileKey] : null;
+  const displayName = profile?.name ?? session.user.name;
 
   return (
     <PageFrame wide>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-3 text-base font-bold text-accent">حسابي</p>
-          <h1 className="font-display text-4xl font-black">أهلاً {session.user.name}</h1>
+          <h1 className="font-display text-4xl font-black">أهلاً {displayName}</h1>
         </div>
         <form action={logoutAction}>
           <button type="submit" className={ghostButtonClass}>
@@ -69,6 +87,7 @@ export default async function AccountPage({
         <p className="mt-4 text-sm font-bold text-red-300">حط رابط المشروع كامل، ويبدأ بـ http أو https.</p>
       ) : null}
       {passwordMessage ? <p className="mt-4 text-sm font-bold text-accent">{passwordMessage}</p> : null}
+      {profileMessage ? <p className="mt-4 text-sm font-bold text-accent">{profileMessage}</p> : null}
       {session.user.role === "admin" ? (
         <Link href="/admin" className="mt-6 inline-flex font-bold text-accent">
           لوحة الإدارة
@@ -99,14 +118,14 @@ export default async function AccountPage({
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-muted">
-                  {finished} من {total} دروس · {percent}%
+                  {studyModeLabel(enrollment.mode)} · {finished} من {total} دروس · {percent}%
                 </p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-background">
                   <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
                 </div>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href={`/learn/${enrollment.course.slug}`} className="font-bold text-accent">
-                    {open ? "كمّل الدروس" : "الدرس المجاني"}
+                    {open ? "كمّل الدروس المسجّلة" : "الدرس المجاني"}
                   </Link>
                   {ready ? (
                     <Link href={`/account/certificate/${enrollment.course.slug}`} className="font-bold text-accent">
@@ -114,6 +133,31 @@ export default async function AccountPage({
                     </Link>
                   ) : null}
                 </div>
+                {open ? (
+                  <ul className="mt-5 space-y-3">
+                    {meetings
+                      .filter((meeting) => meeting.courseId === enrollment.course.id && meeting.kind === enrollment.mode)
+                      .map((meeting) => {
+                        const mark = meeting.attendance[0];
+                        const past = meeting.startsAt.getTime() < Date.now();
+                        const attendanceLabel = mark ? (mark.present ? "حاضر" : "غايب") : past ? "لسه متسجلش" : "لسه محصلتش";
+                        return (
+                          <li key={meeting.id} className="rounded-2xl border border-line px-4 py-3">
+                            <p className="font-bold">{meeting.title}</p>
+                            <p className="mt-1 text-sm text-muted">
+                              {formatCairo(meeting.startsAt)} · {meetingKindLabel(meeting.kind)} · {attendanceLabel}
+                              {meeting.place ? ` · ${meeting.place}` : ""}
+                            </p>
+                            {meeting.kind === "online" && meeting.meetUrl && canJoinMeeting(meeting.startsAt) ? (
+                              <a href={meeting.meetUrl} target="_blank" rel="noopener noreferrer" className={`${buttonClass} mt-3`}>
+                                ادخل الحصة
+                              </a>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                ) : null}
                 {open ? (
                   <form id={`project-${enrollment.course.slug}`} action={submitProject} className="mt-5 space-y-3">
                     <input type="hidden" name="slug" value={enrollment.course.slug} />
@@ -137,7 +181,21 @@ export default async function AccountPage({
           })
         )}
       </ul>
-      <form action={changePassword} className="mt-10 max-w-md space-y-4 rounded-3xl border border-line bg-surface p-6">
+      <form action={updateProfile} className="mt-10 max-w-md space-y-4 rounded-3xl border border-line bg-surface p-6">
+        <h2 className="font-display text-2xl font-black">بياناتك</h2>
+        <label className="block text-sm font-bold">
+          الاسم
+          <input name="name" required defaultValue={displayName ?? ""} className={fieldClass} />
+        </label>
+        <label className="block text-sm font-bold">
+          الموبايل
+          <input name="phone" defaultValue={profile?.phone ?? ""} dir="ltr" placeholder="01xxxxxxxxx" className={fieldClass} />
+        </label>
+        <button type="submit" className={buttonClass}>
+          احفظ
+        </button>
+      </form>
+      <form action={changePassword} className="mt-6 max-w-md space-y-4 rounded-3xl border border-line bg-surface p-6">
         <h2 className="font-display text-2xl font-black">تغيير كلمة السر</h2>
         <label className="block text-sm font-bold">
           كلمة السر الحالية

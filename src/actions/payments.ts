@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { SITE_NAME } from "@/content/site";
 import { activateEnrollment } from "@/lib/fulfill";
+import { courseAllowsHall, studyMode } from "@/lib/meetings";
 import { requireAdmin } from "@/lib/guards";
 import { sendMail } from "@/lib/mail";
 import { getPrisma } from "@/lib/prisma";
@@ -53,10 +54,11 @@ export async function claimManualPayment(formData: FormData): Promise<void> {
       },
     });
   }
+  const mode = studyMode(String(formData.get("mode") ?? ""), courseAllowsHall(course.attendance));
   await prisma.enrollment.upsert({
     where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
-    create: { userId: session.user.id, courseId: course.id, status: "pending" },
-    update: {},
+    create: { userId: session.user.id, courseId: course.id, status: "pending", mode },
+    update: { mode },
   });
   if (session.user.email) {
     const origin = process.env["AUTH_URL"] ?? "https://courses.remonromany.com";

@@ -11,6 +11,7 @@ import { auth } from "@/auth";
 import { CONTACT, PAYMENT, whatsappLink } from "@/content/contact";
 import { courses, formatEgp, trackById } from "@/content/site";
 import { getCourse } from "@/lib/catalog";
+import { courseAllowsHall } from "@/lib/meetings";
 
 export const instant = false;
 
@@ -40,6 +41,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
   const track = trackById(course.track);
   const price = formatEgp(course.priceEgp);
   const receiptMessage = `أهلاً، حوّلت ${price} جنيه على إنستا باي ${PAYMENT.instapayAddress} للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
+  const allowsHall = courseAllowsHall(course.attendance);
   const payNote = search.pay === "method" ? "اختار إنستا باي أو فودافون كاش." : null;
 
   return (
@@ -76,6 +78,21 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
                 {session?.user ? (
                   <form action={claimManualPayment} className="mt-4 space-y-3">
                     <input type="hidden" name="slug" value={course.slug} />
+                    <fieldset className="space-y-2">
+                      <legend className="text-sm font-bold">طريقة الحضور</legend>
+                      <label className="flex items-center gap-2 text-sm font-bold">
+                        <input type="radio" name="mode" value="online" defaultChecked />
+                        أونلاين: دروس مسجّلة وحصص على Google Meet
+                      </label>
+                      {allowsHall ? (
+                        <label className="flex items-center gap-2 text-sm font-bold">
+                          <input type="radio" name="mode" value="hall" />
+                          حضوري: دروس مسجّلة وحضور القاعة
+                        </label>
+                      ) : (
+                        <p className="text-sm text-muted">الكورس ده أونلاين فقط.</p>
+                      )}
+                    </fieldset>
                     <label className="flex items-center gap-2 text-sm font-bold">
                       <input type="radio" name="provider" value="instapay" defaultChecked />
                       حوّلت على إنستا باي
