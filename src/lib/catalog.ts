@@ -16,18 +16,80 @@ function asStrings(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
-export function bunnyEmbedUrl(videoId: string | null | undefined): string | undefined {
-  if (!videoId) {
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "music.youtube.com",
+  "youtu.be",
+  "www.youtu.be",
+  "youtube-nocookie.com",
+  "www.youtube-nocookie.com",
+]);
+
+function youtubeVideoId(value: string): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
     return undefined;
   }
-  if (videoId.startsWith("https://")) {
-    return videoId;
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    return undefined;
+  }
+  const host = url.hostname.toLowerCase();
+  if (!YOUTUBE_HOSTS.has(host)) {
+    return undefined;
+  }
+  const parts = url.pathname.split("/").filter(Boolean);
+  const fromPath = host.endsWith("youtu.be")
+    ? parts[0]
+    : parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live" || parts[0] === "v"
+      ? parts[1]
+      : undefined;
+  const id = fromPath ?? url.searchParams.get("v") ?? "";
+  return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : undefined;
+}
+
+/** رابط تضمين يوتيوب، أو رابط https كما هو، أو رقم فيديو Bunny. */
+export function bunnyEmbedUrl(videoId: string | null | undefined): string | undefined {
+  const value = videoId?.trim();
+  if (!value) {
+    return undefined;
+  }
+  const youtubeId = youtubeVideoId(value);
+  if (youtubeId) {
+    return `https://www.youtube-nocookie.com/embed/${youtubeId}`;
+  }
+  if (value.startsWith("https://") || value.startsWith("http://")) {
+    try {
+      const host = new URL(value).hostname.toLowerCase();
+      if (YOUTUBE_HOSTS.has(host)) {
+        return undefined;
+      }
+    } catch {
+      return undefined;
+    }
+    return value.startsWith("https://") ? value : undefined;
   }
   const library = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
   if (!library) {
     return undefined;
   }
-  return `https://iframe.mediadelivery.net/embed/${library}/${videoId}`;
+  return `https://iframe.mediadelivery.net/embed/${library}/${encodeURIComponent(value)}`;
+}
+
+/** القيمة اللي تتخزن: رابط تضمين يوتيوب قصير، أو رقم Bunny كما هو لو داخل الحد. */
+export function lessonVideoStoredValue(videoId: string): string | null {
+  const value = videoId.trim();
+  if (!value) {
+    return null;
+  }
+  const youtubeId = youtubeVideoId(value);
+  if (youtubeId) {
+    return `https://www.youtube-nocookie.com/embed/${youtubeId}`;
+  }
+  return value.length <= 120 ? value : null;
 }
 
 export function toPublicCourse(row: CourseRow): PublicCourse | null {

@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import { lessonVideoStoredValue } from "@/lib/catalog";
 import { requireAdmin } from "@/lib/guards";
 import { getPrisma } from "@/lib/prisma";
 import { tracks, type TrackId } from "@/content/site";
@@ -125,7 +126,7 @@ export async function updateLesson(formData: FormData): Promise<void> {
   const slug = String(formData.get("slug") ?? "");
   const lessonId = String(formData.get("lessonId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
-  const bunnyVideoId = String(formData.get("bunnyVideoId") ?? "").trim();
+  const bunnyVideoId = lessonVideoStoredValue(String(formData.get("bunnyVideoId") ?? ""));
   const isFree = formData.get("isFree") === "on";
   if (!title) {
     redirect(`/admin/courses/${slug}?error=1`);

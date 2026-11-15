@@ -87,7 +87,7 @@ export type Course = {
   audience: string;
   outcomes: string[];
   modules: string[];
-  /** رابط تضمين (iframe) للدرس المجاني من Bunny Stream. لو فاضي بيظهر زر طلب الدرس على واتساب. */
+  /** رابط تضمين الدرس المجاني من يوتيوب أو Bunny. لو فاضي بيظهر زر طلب الدرس على واتساب. */
   freeLessonEmbedUrl?: string;
 };
 

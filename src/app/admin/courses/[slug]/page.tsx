@@ -91,8 +91,14 @@ export default async function EditCoursePage({
                 <input name="title" defaultValue={lesson.title} className={fieldClass} />
               </label>
               <label className="block text-sm font-bold">
-                رقم فيديو Bunny
-                <input name="bunnyVideoId" defaultValue={lesson.bunnyVideoId ?? ""} dir="ltr" className={fieldClass} />
+                رابط يوتيوب أو رقم Bunny
+                <input
+                  name="bunnyVideoId"
+                  defaultValue={lesson.bunnyVideoId ?? ""}
+                  placeholder="https://youtu.be/..."
+                  dir="ltr"
+                  className={fieldClass}
+                />
               </label>
               <label className="flex items-center gap-2 text-sm font-bold">
                 <input type="checkbox" name="isFree" defaultChecked={lesson.isFree} />
