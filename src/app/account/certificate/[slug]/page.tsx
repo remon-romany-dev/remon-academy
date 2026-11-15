@@ -32,7 +32,10 @@ export default async function CertificatePage({ params }: { params: Promise<{ sl
   const progress = await prisma.lessonProgress.findMany({
     where: { userId: session.user.id, lessonId: { in: enrollment.course.lessons.map((lesson) => lesson.id) } },
   });
-  if (progress.length < enrollment.course.lessons.length || enrollment.course.lessons.length === 0) {
+  const submission = await prisma.submission.findUnique({
+    where: { userId_courseId: { userId: session.user.id, courseId: enrollment.course.id } },
+  });
+  if (!submission || progress.length < enrollment.course.lessons.length || enrollment.course.lessons.length === 0) {
     notFound();
   }
   const issued = new Intl.DateTimeFormat("ar-EG", { dateStyle: "long", timeZone: "Africa/Cairo" }).format(new Date());
@@ -43,7 +46,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ sl
         <p className="text-sm font-bold text-accent">{SITE_NAME}</p>
         <h1 className="font-display mt-4 text-4xl font-black">شهادة إتمام</h1>
         <p className="mt-6 text-lg leading-8">
-          نشهد أن <strong>{session.user.name}</strong> أتمّ كورس <strong>{enrollment.course.title}</strong>.
+          نشهد أن <strong>{session.user.name}</strong> أتمّ كورس <strong>{enrollment.course.title}</strong> وسلّم المشروع النهائي.
         </p>
         <p className="mt-3 text-sm text-muted">{issued}</p>
         <p className="mt-8 text-sm text-muted">ريمون رومانى · المدرّب</p>

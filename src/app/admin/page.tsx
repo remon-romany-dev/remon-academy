@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
+import { adminSetPassword } from "@/actions/auth";
 import { confirmManualPayment } from "@/actions/payments";
-import { ghostButtonClass } from "@/components/account/styles";
+import { fieldClass, ghostButtonClass } from "@/components/account/styles";
 import { PageFrame } from "@/components/site/page-frame";
 import { requireAdmin } from "@/lib/guards";
 import { cairoDay } from "@/lib/day";
@@ -21,7 +22,7 @@ const providerLabel = {
   paymob: "Paymob",
 } as const;
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ db?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ db?: string; password?: string }> }) {
   await connection();
   await requireAdmin();
   const search = await searchParams;
@@ -34,6 +35,20 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       })
     : [];
   const courses = prisma ? await prisma.course.findMany({ orderBy: { sort: "asc" } }) : [];
+  const resets = prisma
+    ? await prisma.passwordReset.findMany({
+        where: { usedAt: null, expiresAt: { gt: new Date() } },
+        include: { user: true },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+  const submissions = prisma
+    ? await prisma.submission.findMany({
+        include: { user: true, course: true },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+      })
+    : [];
   const today = cairoDay();
   const visits = prisma ? await prisma.dailyVisit.findMany({ where: { day: { gte: today.slice(0, 8) + "01" } } }) : [];
   const visitCount = visits.reduce((sum, visit) => sum + visit.count, 0);
@@ -43,6 +58,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <p className="mb-3 text-base font-bold text-accent">الإدارة</p>
       <h1 className="font-display text-4xl font-black">لوحة الإدارة</h1>
       {search.db === "off" ? <p className="mt-4 text-sm text-red-300">قاعدة البيانات مش متوصلة.</p> : null}
+      {search.password === "ok" ? <p className="mt-4 text-sm font-bold text-accent">كلمة السر اتسجلت. ابعتها للطالب على واتساب.</p> : null}
+      {search.password === "short" ? <p className="mt-4 text-sm font-bold text-red-300">كلمة السر لازم تبقى 8 حروف على الأقل.</p> : null}
       <p className="mt-4 text-base text-muted">زيارات الشهر ده: {visitCount}</p>
       <div className="mt-8 flex flex-wrap gap-3">
         <Link href="/admin/courses/new" className={ghostButtonClass}>
@@ -73,6 +90,44 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 ارفض
               </button>
             </form>
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="font-display mt-12 text-2xl font-black">طلبات استعادة كلمة السر</h2>
+      <ul className="mt-4 space-y-3">
+        {resets.length === 0 ? <li className="text-sm text-muted">مفيش طلبات مفتوحة.</li> : null}
+        {resets.map((reset) => (
+          <li key={reset.id} className="rounded-3xl border border-line bg-surface p-5">
+            <p className="font-bold">
+              {reset.user.name} · <span dir="ltr">{reset.user.email}</span>
+            </p>
+            <form action={adminSetPassword} className="mt-4 flex flex-wrap items-end gap-2">
+              <input type="hidden" name="userId" value={reset.userId} />
+              <label className="text-sm font-bold">
+                كلمة سر جديدة
+                <input name="password" type="text" required minLength={8} dir="ltr" autoComplete="off" className={fieldClass} />
+              </label>
+              <button type="submit" className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-ink">
+                احفظ وابعتها له
+              </button>
+            </form>
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="font-display mt-12 text-2xl font-black">تسليمات المشاريع</h2>
+      <ul className="mt-4 space-y-3">
+        {submissions.length === 0 ? <li className="text-sm text-muted">لسه مفيش تسليم.</li> : null}
+        {submissions.map((submission) => (
+          <li key={submission.id} className="rounded-3xl border border-line bg-surface p-5">
+            <p className="font-bold">
+              {submission.user.name} · {submission.course.title}
+            </p>
+            <a href={submission.url} className="mt-2 block text-sm font-bold text-accent" dir="ltr">
+              {submission.url}
+            </a>
+            {submission.note ? <p className="mt-2 text-sm text-muted">{submission.note}</p> : null}
           </li>
         ))}
       </ul>

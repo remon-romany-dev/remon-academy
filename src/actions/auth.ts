@@ -1,10 +1,15 @@
 "use server";
 
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/auth";
 import bcrypt from "bcryptjs";
-import { getPrisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { auth, signIn, signOut } from "@/auth";
+import { CONTACT } from "@/content/contact";
+import { SITE_NAME } from "@/content/site";
+import { sendMail } from "@/lib/mail";
 import { safeNextPath } from "@/lib/paths";
+import { getPrisma } from "@/lib/prisma";
+import { hashToken, newToken } from "@/lib/tokens";
 
 export type AuthState = { error: string } | null;
 
@@ -69,4 +74,107 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
 
 export async function logoutAction(): Promise<void> {
   await signOut({ redirectTo: "/" });
+}
+
+function validPassword(password: string): boolean {
+  return password.length >= 8 && password.length <= 72;
+}
+
+export async function requestPasswordReset(formData: FormData): Promise<void> {
+  const email = String(formData.get("email") ?? "")
+    .toLowerCase()
+    .trim();
+  const prisma = getPrisma();
+  if (prisma && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    const recent = user
+      ? await prisma.passwordReset.findFirst({
+          where: { userId: user.id, createdAt: { gt: new Date(Date.now() - 60_000) } },
+        })
+      : null;
+    if (user && !recent) {
+      const token = newToken();
+      const expiresAt = new Date(Date.now() + 30 * 60_000);
+      await prisma.passwordReset.deleteMany({ where: { userId: user.id, usedAt: null } });
+      await prisma.passwordReset.create({ data: { userId: user.id, tokenHash: hashToken(token), expiresAt } });
+      const origin = process.env["AUTH_URL"] ?? "https://courses.remonromany.com";
+      await sendMail({
+        to: user.email,
+        subject: `تغيير كلمة السر — ${SITE_NAME}`,
+        text: `أهلاً ${user.name}\nغيّر كلمة السر من الرابط ده خلال 30 دقيقة:\n${origin}/reset/${token}\nلو مش إنت اللي طلبت التغيير، سيب الرسالة دي.\n${SITE_NAME}`,
+      });
+    }
+  }
+  redirect("/forgot?sent=1");
+}
+
+export async function resetPassword(formData: FormData): Promise<void> {
+  const token = String(formData.get("token") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (!validPassword(password) || token.length < 20) {
+    redirect(`/reset/${encodeURIComponent(token)}?error=1`);
+  }
+  const prisma = getPrisma();
+  if (!prisma) {
+    redirect("/forgot?sent=1");
+  }
+  const reset = await prisma.passwordReset.findUnique({ where: { tokenHash: hashToken(token) } });
+  if (!reset || reset.usedAt || reset.expiresAt.getTime() < Date.now()) {
+    redirect("/forgot?expired=1");
+  }
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.update({ where: { id: reset.userId }, data: { passwordHash } });
+  await prisma.passwordReset.update({ where: { id: reset.id }, data: { usedAt: new Date() } });
+  redirect("/login?reset=1");
+}
+
+export async function changePassword(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login?next=/account");
+  }
+  const current = String(formData.get("current") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (!validPassword(password)) {
+    redirect("/account?password=short");
+  }
+  const prisma = getPrisma();
+  if (!prisma) {
+    redirect("/account?password=off");
+  }
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user || !(await bcrypt.compare(current, user.passwordHash))) {
+    redirect("/account?password=bad");
+  }
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12) } });
+  await prisma.passwordReset.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
+  redirect("/account?password=ok");
+}
+
+export async function adminSetPassword(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (session?.user?.role !== "admin") {
+    redirect("/login?next=/admin");
+  }
+  const userId = String(formData.get("userId") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (!validPassword(password)) {
+    redirect("/admin?password=short");
+  }
+  const prisma = getPrisma();
+  if (!prisma) {
+    redirect("/admin?db=off");
+  }
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    redirect("/admin");
+  }
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12) } });
+  await prisma.passwordReset.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
+  await sendMail({
+    to: user.email,
+    subject: `كلمة السر الجديدة — ${SITE_NAME}`,
+    text: `أهلاً ${user.name}\nكلمة السر بتاعة حسابك اتغيّرت. ادخل من ${process.env["AUTH_URL"] ?? "https://courses.remonromany.com"}/login\nلو مش وصلتك كلمة السر الجديدة، كلمنا على واتساب ${CONTACT.phoneDisplay}.\n${SITE_NAME}`,
+  });
+  redirect("/admin?password=ok");
 }

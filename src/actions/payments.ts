@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { SITE_NAME } from "@/content/site";
 import { activateEnrollment } from "@/lib/fulfill";
 import { requireAdmin } from "@/lib/guards";
+import { sendMail } from "@/lib/mail";
 import { getPrisma } from "@/lib/prisma";
 import { paymobConfigured } from "@/lib/paymob";
 import { safeNextPath } from "@/lib/paths";
@@ -56,6 +58,14 @@ export async function claimManualPayment(formData: FormData): Promise<void> {
     create: { userId: session.user.id, courseId: course.id, status: "pending" },
     update: {},
   });
+  if (session.user.email) {
+    const origin = process.env["AUTH_URL"] ?? "https://courses.remonromany.com";
+    await sendMail({
+      to: session.user.email,
+      subject: `استلمنا طلب الاشتراك — ${course.title}`,
+      text: `أهلاً ${session.user.name ?? ""}\nاستلمنا طلب تحويل كورس ${course.title} بمبلغ ${course.priceEgp.toLocaleString("en-US")} جنيه.\nبعد مراجعة الإيصال الكورس هيتفتح في حسابك:\n${origin}/account\n${SITE_NAME}`,
+    });
+  }
   redirect("/account?sent=1");
 }
 
@@ -145,6 +155,15 @@ export async function confirmManualPayment(formData: FormData): Promise<void> {
   }
   if (decision === "paid") {
     await activateEnrollment(payment.userId, payment.courseId, payment.id);
+    const paid = await prisma.payment.findUnique({ where: { id: payment.id }, include: { user: true, course: true } });
+    if (paid) {
+      const origin = process.env["AUTH_URL"] ?? "https://courses.remonromany.com";
+      await sendMail({
+        to: paid.user.email,
+        subject: `الكورس اتفتح — ${paid.course.title}`,
+        text: `أهلاً ${paid.user.name}\nراجعنا التحويل، وكورس ${paid.course.title} اتفتح في حسابك:\n${origin}/learn/${paid.course.slug}\n${SITE_NAME}`,
+      });
+    }
   } else if (decision === "failed") {
     await prisma.payment.update({ where: { id: payment.id }, data: { status: "failed" } });
   }
