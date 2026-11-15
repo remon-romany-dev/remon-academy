@@ -84,9 +84,17 @@ export default async function LearnPage({
     notFound();
   }
   const locked = !current.isFree && !paid && session?.user?.role !== "admin";
-  const completed = session?.user && prisma && !current.id.startsWith(`${slug}-`)
-    ? Boolean(await prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: session.user.id, lessonId: current.id } } }))
-    : false;
+  const finishedIds = new Set<string>();
+  if (session?.user && prisma && record) {
+    const rows = await prisma.lessonProgress.findMany({
+      where: { userId: session.user.id, lessonId: { in: record.lessons.map((lesson) => lesson.id) } },
+      select: { lessonId: true },
+    });
+    for (const row of rows) {
+      finishedIds.add(row.lessonId);
+    }
+  }
+  const completed = finishedIds.has(current.id);
   const nextMeeting = record && prisma && session?.user && (paid || session.user.role === "admin")
     ? await prisma.classMeeting.findFirst({
         where: {
@@ -121,7 +129,9 @@ export default async function LearnPage({
                   <span>
                     {lesson.position}. {lesson.title}
                   </span>
-                  <span>{lessonLocked ? "بعد الاشتراك" : lesson.isFree ? "مجاني" : "مفتوح"}</span>
+                  <span>
+                    {lessonLocked ? "بعد الاشتراك" : finishedIds.has(lesson.id) ? "خلّصها" : lesson.isFree ? "مجاني" : "مفتوح"}
+                  </span>
                 </Link>
               </li>
             );

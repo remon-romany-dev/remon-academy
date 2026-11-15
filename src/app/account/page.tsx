@@ -28,7 +28,7 @@ export default async function AccountPage({
   const enrollments = prisma
     ? await prisma.enrollment.findMany({
         where: { userId: session.user.id },
-        include: { course: { include: { lessons: true } } },
+        include: { course: { include: { lessons: { orderBy: { position: "asc" } } } } },
         orderBy: { createdAt: "desc" },
       })
     : [];
@@ -154,6 +154,21 @@ export default async function AccountPage({
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-background">
                   <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
                 </div>
+                <ul className="mt-4 space-y-1 text-sm">
+                  {[...enrollment.course.lessons]
+                    .sort((a, b) => a.position - b.position)
+                    .map((lesson) => {
+                      const mark = progress.find((item) => item.lessonId === lesson.id);
+                      return (
+                        <li key={lesson.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <span>
+                            {lesson.position}. {lesson.title}
+                          </span>
+                          <span className="text-muted">{mark ? `خلّصها ${formatCairo(mark.completedAt)}` : "لسه"}</span>
+                        </li>
+                      );
+                    })}
+                </ul>
                 {courseAllowsHall(enrollment.course.attendance) ? (
                   <form action={updateStudyMode} className="mt-4 flex flex-wrap items-end gap-3">
                     <input type="hidden" name="slug" value={enrollment.course.slug} />

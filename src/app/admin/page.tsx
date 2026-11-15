@@ -42,7 +42,7 @@ function enrollmentStatusLabel(status: PaymentStatus): string {
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ db?: string; password?: string }> }) {
   await connection();
-  await requireAdmin();
+  const session = await requireAdmin();
   const search = await searchParams;
   const prisma = getPrisma();
   const payments = prisma
@@ -78,7 +78,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const students = prisma
     ? await prisma.user.findMany({
         where: { role: "student" },
-        include: { enrollments: { include: { course: true }, orderBy: { createdAt: "desc" } } },
+        include: {
+          enrollments: {
+            include: { course: { include: { lessons: { orderBy: { position: "asc" } } } } },
+            orderBy: { createdAt: "desc" },
+          },
+          progress: true,
+        },
         orderBy: { createdAt: "desc" },
         take: 40,
       })
@@ -94,6 +100,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const monthStart = `${cairoDay().slice(0, 8)}01`;
   const visits = prisma ? await prisma.dailyVisit.findMany({ where: { day: { gte: monthStart } } }) : [];
   const visitCount = visits.reduce((sum, visit) => sum + visit.count, 0);
+  const adminAccount = prisma
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: {
+          enrollments: { include: { course: { include: { lessons: { orderBy: { position: "asc" } } } } } },
+          progress: true,
+        },
+      })
+    : null;
 
   return (
     <PageFrame wide>
@@ -103,6 +118,49 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       {search.password === "ok" ? <p className="mt-4 text-sm font-bold text-accent">كلمة السر اتسجلت. ابعتها للطالب على واتساب.</p> : null}
       {search.password === "short" ? <p className="mt-4 text-sm font-bold text-red-300">كلمة السر لازم تبقى 8 حروف على الأقل.</p> : null}
       <p className="mt-4 text-base text-muted">زيارات الشهر ده: {visitCount}</p>
+      {adminAccount ? (
+        <section className="mt-8 rounded-3xl border border-line bg-surface p-6">
+          <p className="text-sm font-bold text-accent">حساب الإدارة</p>
+          <h2 className="font-display mt-2 text-2xl font-black">{adminAccount.name}</h2>
+          <p className="mt-1 text-sm text-muted" dir="ltr">
+            {adminAccount.email}
+          </p>
+          {adminAccount.enrollments.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">الحساب ده مش مشترك في كورس.</p>
+          ) : (
+            <ul className="mt-4 space-y-3 text-sm">
+              {adminAccount.enrollments.map((enrollment) => {
+                const watched = enrollment.course.lessons.flatMap((lesson) => {
+                  const mark = adminAccount.progress.find((item) => item.lessonId === lesson.id);
+                  return mark ? [{ lesson, at: mark.completedAt }] : [];
+                });
+                return (
+                  <li key={enrollment.id}>
+                    <p>
+                      {enrollment.course.title} · {studyModeLabel(enrollment.mode)} · {enrollmentStatusLabel(enrollment.status)} · {watched.length} من{" "}
+                      {enrollment.course.lessons.length} دروس
+                    </p>
+                    {watched.length === 0 ? (
+                      <p className="mt-1 text-muted">لسه مفيش درس متسجل.</p>
+                    ) : (
+                      <ul className="mt-1 space-y-1 text-muted">
+                        {watched.map((item) => (
+                          <li key={item.lesson.id}>
+                            {item.lesson.position}. {item.lesson.title} · خلّصها {formatCairo(item.at)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <Link href="/account" className="mt-4 inline-flex font-bold text-accent">
+            افتح حساب التعلّم
+          </Link>
+        </section>
+      ) : null}
       <div className="mt-8 flex flex-wrap gap-3">
         <Link href="/admin/courses/new" className={ghostButtonClass}>
           كورس جديد
@@ -218,12 +276,32 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             {student.enrollments.length === 0 ? (
               <p className="mt-2 text-sm text-muted">لسه مشتركش في كورس.</p>
             ) : (
-              <ul className="mt-3 space-y-1 text-sm">
-                {student.enrollments.map((enrollment) => (
-                  <li key={enrollment.id}>
-                    {enrollment.course.title} · {studyModeLabel(enrollment.mode)} · {enrollmentStatusLabel(enrollment.status)}
-                  </li>
-                ))}
+              <ul className="mt-3 space-y-3 text-sm">
+                {student.enrollments.map((enrollment) => {
+                  const watched = enrollment.course.lessons.flatMap((lesson) => {
+                    const mark = student.progress.find((item) => item.lessonId === lesson.id);
+                    return mark ? [{ lesson, at: mark.completedAt }] : [];
+                  });
+                  return (
+                    <li key={enrollment.id}>
+                      <p>
+                        {enrollment.course.title} · {studyModeLabel(enrollment.mode)} · {enrollmentStatusLabel(enrollment.status)} ·{" "}
+                        {watched.length} من {enrollment.course.lessons.length} دروس
+                      </p>
+                      {watched.length === 0 ? (
+                        <p className="mt-1 text-muted">لسه مفيش درس متسجل.</p>
+                      ) : (
+                        <ul className="mt-1 space-y-1 text-muted">
+                          {watched.map((item) => (
+                            <li key={item.lesson.id}>
+                              {item.lesson.position}. {item.lesson.title} · خلّصها {formatCairo(item.at)}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </li>
