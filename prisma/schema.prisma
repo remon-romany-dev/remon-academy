@@ -48,6 +48,7 @@ model User {
   resets       PasswordReset[]
   submissions  Submission[]
   attendance   Attendance[]
+  certificates Certificate[]
 }
 
 model Course {
@@ -73,6 +74,7 @@ model Course {
   payments    Payment[]
   submissions Submission[]
   meetings    ClassMeeting[]
+  certificates Certificate[]
 }
 
 model Lesson {
@@ -168,6 +170,18 @@ model ClassMeeting {
   attendance Attendance[]
 
   @@index([courseId, startsAt])
+}
+
+model Certificate {
+  id       String   @id @default(cuid())
+  userId   String
+  courseId String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  code     String   @unique @db.VarChar(16)
+  issuedAt DateTime @default(now())
+
+  @@unique([userId, courseId])
 }
 
 model Attendance {

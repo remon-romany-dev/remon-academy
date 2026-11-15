@@ -2,7 +2,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { testimonials, testimonialsAreSamples } from "@/content/testimonials";
 
 /**
- * آراء الطلاب. لو القائمة نماذج، القسم بيقول كده صراحة ومش بيتعرض كإن فيه طلاب خلّصوا.
+ * قسم الآراء. الأسماء بتظهر بس لما الرأي يكون لطالب حقيقي.
  */
 export function Testimonials() {
   if (testimonials.length === 0) {
@@ -11,11 +11,9 @@ export function Testimonials() {
   return (
     <section id="reviews" className="defer mx-auto max-w-7xl px-5 py-20 md:px-8 lg:py-28">
       <Reveal className="mb-12 max-w-2xl">
-        <p className="mb-3 text-base font-bold text-accent">
-          {testimonialsAreSamples ? "شكل القسم" : "آراء الطلاب"}
-        </p>
+        <p className="mb-3 text-base font-bold text-accent">الآراء</p>
         <h2 className="font-display text-4xl leading-tight font-black sm:text-5xl">
-          {testimonialsAreSamples ? "كده شكل قسم الآراء" : "اللي اتعلموا قبلك بيقولوا إيه"}
+          {testimonialsAreSamples ? "آراء عن الكورسات" : "اللي اتعلموا قبلك بيقولوا إيه"}
         </h2>
       </Reveal>
       <ul className="grid gap-4 md:grid-cols-3">

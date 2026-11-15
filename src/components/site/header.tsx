@@ -6,11 +6,10 @@ import { useState } from "react";
 import { Logo } from "@/components/site/logo";
 
 const links = [
-  { href: "/#tracks", label: "المسارات" },
+  { href: "/goals", label: "طريق الشغل" },
+  { href: "/diplomas", label: "الدبلومات" },
   { href: "/#courses", label: "الكورسات" },
-  { href: "/#how", label: "إزاي بتشتغل" },
-  { href: "/#instructor", label: "المدرّب" },
-  { href: "/#faq", label: "الأسئلة" },
+  { href: "/kids", label: "أطفال" },
   { href: "/account", label: "حسابي" },
 ];
 

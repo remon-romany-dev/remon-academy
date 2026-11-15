@@ -13,6 +13,7 @@ import { JsonLd } from "@/components/site/json-ld";
 import { TrackVisual } from "@/components/visuals/track-visual";
 import { LessonPlayer } from "@/components/lesson/player";
 import { PAYMENT } from "@/content/contact";
+import { coursePlaces } from "@/content/paths";
 import { courses, formatEgp, SITE_NAME, SITE_URL, trackById } from "@/content/site";
 import { getCatalog, getCourse } from "@/lib/catalog";
 import { groupSentence } from "@/lib/meetings";
@@ -61,6 +62,7 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
   const track = trackById(course.track);
   const hue = { "--h": track.hue } as CSSProperties;
   const nextGroup = groupSentence(course);
+  const places = coursePlaces(course.slug);
   const related = [
     ...catalog.filter((item) => item.track === course.track && item.slug !== course.slug),
     ...catalog.filter((item) => item.track !== course.track),
@@ -152,6 +154,15 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
                 {nextGroup ? (
                   <p className="mt-6 max-w-xl rounded-2xl border border-line bg-surface/80 px-5 py-4 text-base leading-7 font-bold">
                     {nextGroup}
+                  </p>
+                ) : null}
+                {places.length > 0 ? (
+                  <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm font-bold">
+                    {places.map((place) => (
+                      <Link key={place.href} href={place.href} className="text-accent">
+                        {place.label}
+                      </Link>
+                    ))}
                   </p>
                 ) : null}
                 <div className="mt-9 flex flex-wrap items-center gap-5">

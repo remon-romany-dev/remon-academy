@@ -54,6 +54,26 @@ export async function SiteFooter() {
           <h2 className="font-display mb-4 text-lg font-black">روابط</h2>
           <ul className="space-y-1">
             <li>
+              <Link href="/goals" className={linkClass}>
+                طريق الشغل
+              </Link>
+            </li>
+            <li>
+              <Link href="/diplomas" className={linkClass}>
+                الدبلومات
+              </Link>
+            </li>
+            <li>
+              <Link href="/kids" className={linkClass}>
+                أطفال
+              </Link>
+            </li>
+            <li>
+              <Link href="/verify" className={linkClass}>
+                تحقق من شهادة
+              </Link>
+            </li>
+            <li>
               <Link href="/#how" className={linkClass}>
                 إزاي بتشتغل
               </Link>

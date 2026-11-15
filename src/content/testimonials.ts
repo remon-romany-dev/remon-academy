@@ -5,7 +5,7 @@ export type Testimonial = {
 };
 
 /**
- * نماذج شكل القسم فقط. مش آراء طلاب.
+ * نصوص القسم من غير أسماء. مش طلاب حقيقيين.
  * لما يوصلك رأي حقيقي بموافقة صاحبه، استبدل المصفوفة واقلب testimonialsAreSamples لـ false.
  */
 export const testimonialsAreSamples = true;
