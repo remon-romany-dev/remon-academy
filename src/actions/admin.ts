@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { lessonVideoStoredValue } from "@/lib/catalog";
 import { requireAdmin } from "@/lib/guards";
+import { parseCairoDateTime } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
 import { tracks, type TrackId } from "@/content/site";
 
@@ -87,12 +88,26 @@ export async function updateCourse(formData: FormData): Promise<void> {
   const outcomes = lines(formData.get("outcomes"));
   const published = formData.get("published") === "on";
   const attendance = String(formData.get("attendance") ?? "").trim();
-  if (!title || !Number.isFinite(hours) || hours < 1 || !Number.isFinite(priceEgp) || priceEgp < 0 || !attendance) {
+  const groupRaw = String(formData.get("groupStartsAt") ?? "").trim();
+  const groupStartsAt = groupRaw ? parseCairoDateTime(groupRaw) : null;
+  const seatsRaw = String(formData.get("seats") ?? "").trim();
+  const seatsParsed = Number(seatsRaw);
+  const seats = seatsRaw && Number.isInteger(seatsParsed) && seatsParsed >= 1 && seatsParsed <= 500 ? seatsParsed : null;
+  if (
+    !title ||
+    !Number.isFinite(hours) ||
+    hours < 1 ||
+    !Number.isFinite(priceEgp) ||
+    priceEgp < 0 ||
+    !attendance ||
+    (groupRaw && !groupStartsAt) ||
+    (seatsRaw && seats == null)
+  ) {
     redirect(`/admin/courses/${slug}?error=1`);
   }
   await prisma.course.update({
     where: { slug },
-    data: { title, hours, priceEgp, summary, audience, outcomes, published, attendance },
+    data: { title, hours, priceEgp, summary, audience, outcomes, published, attendance, groupStartsAt, seats },
   });
   refreshCourse(slug);
   redirect(`/admin/courses/${slug}`);

@@ -83,6 +83,12 @@ export type Course = {
   /** القائمة المرجعية المنشورة في السوق قبل الخصم، لو مختلفة عن سعر البيع. */
   listPriceEgp?: number;
   attendance: string;
+  /** بداية المجموعة الجاية، ISO. */
+  groupStartsAt?: string;
+  /** عدد مقاعد المجموعة. */
+  seats?: number;
+  /** المقاعد المحجوزة بدفع مؤكد أو طلب تحويل. */
+  seatsTaken?: number;
   summary: string;
   audience: string;
   outcomes: string[];

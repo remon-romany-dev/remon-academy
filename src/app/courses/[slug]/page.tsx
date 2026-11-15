@@ -15,6 +15,7 @@ import { LessonPlayer } from "@/components/lesson/player";
 import { PAYMENT } from "@/content/contact";
 import { courses, formatEgp, SITE_NAME, SITE_URL, trackById } from "@/content/site";
 import { getCatalog, getCourse } from "@/lib/catalog";
+import { groupSentence } from "@/lib/meetings";
 
 export function generateStaticParams() {
   return courses.map((course) => ({ slug: course.slug }));
@@ -59,6 +60,7 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
   const catalog = await getCatalog();
   const track = trackById(course.track);
   const hue = { "--h": track.hue } as CSSProperties;
+  const nextGroup = groupSentence(course);
   const related = [
     ...catalog.filter((item) => item.track === course.track && item.slug !== course.slug),
     ...catalog.filter((item) => item.track !== course.track),
@@ -147,6 +149,11 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
                     شهادة إتمام
                   </li>
                 </ul>
+                {nextGroup ? (
+                  <p className="mt-6 max-w-xl rounded-2xl border border-line bg-surface/80 px-5 py-4 text-base leading-7 font-bold">
+                    {nextGroup}
+                  </p>
+                ) : null}
                 <div className="mt-9 flex flex-wrap items-center gap-5">
                   <Magnetic
                     href={`/learn/${course.slug}?lesson=1`}

@@ -69,6 +69,31 @@ export function formatCairo(date: Date): string {
   }).format(date);
 }
 
+export function groupSentence(input: {
+  groupStartsAt?: string;
+  attendance: string;
+  seats?: number;
+  seatsTaken?: number;
+}, now = new Date()): string | null {
+  if (!input.groupStartsAt) {
+    return null;
+  }
+  const starts = new Date(input.groupStartsAt);
+  if (Number.isNaN(starts.getTime())) {
+    return null;
+  }
+  const when = formatCairo(starts);
+  const head = starts.getTime() > now.getTime() ? `المجموعة الجاية ${when}` : `المجموعة بدأت ${when}`;
+  if (input.seats == null) {
+    return `${head}، ${input.attendance}.`;
+  }
+  const left = Math.max(0, input.seats - (input.seatsTaken ?? 0));
+  if (left === 0) {
+    return `${head}، ${input.attendance}. المقاعد اكتملت.`;
+  }
+  return `${head}، ${input.attendance}. فاضل ${left} من ${input.seats} مقعد.`;
+}
+
 export function canJoinMeeting(startsAt: Date, now = new Date()): boolean {
   return now.getTime() <= startsAt.getTime() + JOIN_WINDOW_MS;
 }

@@ -3,7 +3,7 @@ import type { Course, Lesson, PrismaClient } from "@prisma/client";
 import { courses as fileCourses, tracks, type Course as PublicCourse, type TrackId } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 
-type CourseRow = Course & { lessons: Lesson[] };
+type CourseRow = Course & { lessons: Lesson[]; _count: { enrollments: number } };
 
 function isTrack(value: string): value is TrackId {
   return tracks.some((track) => track.id === value);
@@ -111,13 +111,19 @@ export function toPublicCourse(row: CourseRow): PublicCourse | null {
     outcomes: asStrings(row.outcomes),
     modules: lessons.map((lesson) => lesson.title),
     freeLessonEmbedUrl: bunnyEmbedUrl(freeLesson?.bunnyVideoId),
+    groupStartsAt: row.groupStartsAt?.toISOString(),
+    seats: row.seats ?? undefined,
+    seatsTaken: row._count.enrollments,
   };
 }
 
 async function readDatabase(prisma: PrismaClient): Promise<PublicCourse[] | null> {
   const rows = await prisma.course.findMany({
     where: { published: true },
-    include: { lessons: { orderBy: { position: "asc" } } },
+    include: {
+      lessons: { orderBy: { position: "asc" } },
+      _count: { select: { enrollments: { where: { status: { in: ["paid", "pending"] } } } } },
+    },
     orderBy: { sort: "asc" },
   });
   if (rows.length === 0) {

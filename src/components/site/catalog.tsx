@@ -4,6 +4,7 @@ import { TrackVisual } from "@/components/visuals/track-visual";
 import { Reveal } from "@/components/ui/reveal";
 import { PAYMENT, whatsappLink } from "@/content/contact";
 import { getCatalog } from "@/lib/catalog";
+import { groupSentence } from "@/lib/meetings";
 import { formatEgp, trackById, tracks, type Track, type TrackId } from "@/content/site";
 
 const hueStyle = (hue: number, extra?: CSSProperties): CSSProperties =>
@@ -214,6 +215,7 @@ export async function Catalog() {
                 {courses.map((course, index) => {
                   const track = trackById(course.track);
                   const flag = flags.get(course.slug);
+                  const nextGroup = groupSentence(course);
                   return (
                     <article
                       key={course.slug}
@@ -246,9 +248,10 @@ export async function Catalog() {
                     </Link>
                   </h3>
                   <p className="mt-3 line-clamp-3 text-base leading-7 text-muted">{course.summary}</p>
-                  <p className="mt-4 mb-6 text-sm text-muted">
+                  <p className="mt-4 text-sm text-muted">
                     {course.hours} ساعة · {course.attendance}
                   </p>
+                  {nextGroup ? <p className="mt-2 mb-6 text-sm leading-6 font-bold">{nextGroup}</p> : <span className="mb-6 block" />}
                   <div className="mt-auto flex items-end justify-between gap-3 border-t border-line pt-5">
                     <div>
                       <span className="block text-xs text-muted">السعر</span>

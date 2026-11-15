@@ -11,7 +11,7 @@ import { auth } from "@/auth";
 import { CONTACT, PAYMENT, whatsappLink } from "@/content/contact";
 import { courses, formatEgp, trackById } from "@/content/site";
 import { getCourse } from "@/lib/catalog";
-import { courseAllowsHall } from "@/lib/meetings";
+import { courseAllowsHall, groupSentence } from "@/lib/meetings";
 
 export const instant = false;
 
@@ -43,6 +43,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
   const receiptMessage = `أهلاً، حوّلت ${price} جنيه للاشتراك في كورس ${course.title}. دي صورة الإيصال، واسمي: `;
   const allowsHall = courseAllowsHall(course.attendance);
   const payNote = search.pay === "method" ? "اختار إنستا باي أو فودافون كاش." : null;
+  const nextGroup = groupSentence(course);
 
   return (
     <>
@@ -55,6 +56,7 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
           </Link>
           <h1 className="font-display mt-3 text-4xl leading-tight font-black sm:text-5xl">الاشتراك في {course.title}</h1>
           <p className="mt-3 text-lg text-muted">حوّل على إنستا باي أو فودافون كاش، وبعد المراجعة الكورس يتفتح في حسابك.</p>
+          {nextGroup ? <p className="mt-4 max-w-2xl text-base leading-7 font-bold">{nextGroup}</p> : null}
           {payNote ? <p className="mt-4 rounded-2xl border border-line bg-surface p-4 text-sm">{payNote}</p> : null}
 
           <div className="mt-10 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">

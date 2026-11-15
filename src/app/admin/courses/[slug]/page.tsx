@@ -6,7 +6,7 @@ import { createMeeting, deleteMeeting, saveAttendance, updateMeeting } from "@/a
 import { buttonClass, fieldClass, ghostButtonClass } from "@/components/account/styles";
 import { PageFrame } from "@/components/site/page-frame";
 import { requireAdmin } from "@/lib/guards";
-import { cairoInputValue, formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
+import { cairoInputValue, formatCairo, groupSentence, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
 
 export const instant = false;
@@ -37,6 +37,7 @@ export default async function EditCoursePage({
       lessons: { orderBy: { position: "asc" } },
       meetings: { orderBy: { startsAt: "asc" }, include: { attendance: true } },
       enrollments: { where: { status: "paid" }, include: { user: true }, orderBy: { createdAt: "asc" } },
+      _count: { select: { enrollments: { where: { status: { in: ["paid", "pending"] } } } } },
     },
   });
   if (!course) {
@@ -81,6 +82,29 @@ export default async function EditCoursePage({
           طريقة الدراسة على الكورس
           <input name="attendance" defaultValue={course.attendance} className={fieldClass} />
         </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-bold">
+            بداية المجموعة الجاية
+            <input
+              name="groupStartsAt"
+              type="datetime-local"
+              defaultValue={course.groupStartsAt ? cairoInputValue(course.groupStartsAt) : ""}
+              className={fieldClass}
+            />
+          </label>
+          <label className="block text-sm font-bold">
+            عدد المقاعد
+            <input name="seats" type="number" min={1} max={500} defaultValue={course.seats ?? ""} className={fieldClass} />
+          </label>
+        </div>
+        <p className="text-sm leading-6 text-muted">
+          {groupSentence({
+            groupStartsAt: course.groupStartsAt?.toISOString(),
+            attendance: course.attendance,
+            seats: course.seats ?? undefined,
+            seatsTaken: course._count.enrollments,
+          }) ?? "حط ميعاد المجموعة وعدد المقاعد عشان يظهروا على صفحة الكورس."}
+        </p>
         <label className="flex items-center gap-2 text-sm font-bold">
           <input type="checkbox" name="published" defaultChecked={course.published} />
           ظاهر في الموقع
