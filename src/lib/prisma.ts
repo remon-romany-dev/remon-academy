@@ -2,8 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+function databaseUrl(): string | undefined {
+  return process.env["DATABASE_URL"];
+}
+
 export function getPrisma(): PrismaClient | null {
-  if (!process.env.DATABASE_URL) {
+  if (!databaseUrl()) {
     return null;
   }
   if (!globalForPrisma.prisma) {
