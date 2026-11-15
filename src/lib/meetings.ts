@@ -74,7 +74,7 @@ export function groupSentence(input: {
   attendance: string;
   seats?: number;
   seatsTaken?: number;
-}, now = new Date()): string | null {
+}): string | null {
   if (!input.groupStartsAt) {
     return null;
   }
@@ -83,7 +83,7 @@ export function groupSentence(input: {
     return null;
   }
   const when = formatCairo(starts);
-  const head = starts.getTime() > now.getTime() ? `المجموعة الجاية ${when}` : `المجموعة بدأت ${when}`;
+  const head = `المجموعة الجاية ${when}`;
   if (input.seats == null) {
     return `${head}، ${input.attendance}.`;
   }
