@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
 import { adminSetPassword } from "@/actions/auth";
+import { reviewSubmission } from "@/actions/learning";
 import { confirmManualPayment } from "@/actions/payments";
 import { fieldClass, ghostButtonClass } from "@/components/account/styles";
 import { PageFrame } from "@/components/site/page-frame";
 import { requireAdmin } from "@/lib/guards";
-import { cairoDay } from "@/lib/day";
+import { cairoDay, cairoDayRange } from "@/lib/day";
+import { formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
 
 export const instant = false;
@@ -49,8 +51,31 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         take: 20,
       })
     : [];
-  const today = cairoDay();
-  const visits = prisma ? await prisma.dailyVisit.findMany({ where: { day: { gte: today.slice(0, 8) + "01" } } }) : [];
+  const today = cairoDayRange();
+  const todayMeetings = prisma
+    ? await prisma.classMeeting.findMany({
+        where: { startsAt: { gte: today.start, lte: today.end } },
+        include: { course: true },
+        orderBy: { startsAt: "asc" },
+      })
+    : [];
+  const roster = prisma
+    ? await prisma.enrollment.findMany({
+        include: { user: true, course: true },
+        orderBy: { createdAt: "desc" },
+        take: 40,
+      })
+    : [];
+  const paymentModes =
+    prisma && payments.length > 0
+      ? await prisma.enrollment.findMany({
+          where: { OR: payments.map((payment) => ({ userId: payment.userId, courseId: payment.courseId })) },
+          select: { userId: true, courseId: true, mode: true },
+        })
+      : [];
+  const modeByKey = new Map(paymentModes.map((enrollment) => [`${enrollment.userId}:${enrollment.courseId}`, enrollment.mode]));
+  const monthStart = `${cairoDay().slice(0, 8)}01`;
+  const visits = prisma ? await prisma.dailyVisit.findMany({ where: { day: { gte: monthStart } } }) : [];
   const visitCount = visits.reduce((sum, visit) => sum + visit.count, 0);
 
   return (
@@ -70,6 +95,22 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </Link>
       </div>
 
+      <h2 className="font-display mt-12 text-2xl font-black">حصص النهاردة</h2>
+      <ul className="mt-4 space-y-3">
+        {todayMeetings.length === 0 ? <li className="text-sm text-muted">مفيش حصص النهاردة.</li> : null}
+        {todayMeetings.map((meeting) => (
+          <li key={meeting.id} className="rounded-3xl border border-line bg-surface p-5">
+            <p className="font-bold">{meeting.title}</p>
+            <p className="mt-1 text-sm text-muted">
+              {meeting.course.title} · {formatCairo(meeting.startsAt)} · {meetingKindLabel(meeting.kind)}
+            </p>
+            <Link href={`/admin/courses/${meeting.course.slug}`} className="mt-3 inline-flex text-sm font-bold text-accent">
+              الحضور والتعديل
+            </Link>
+          </li>
+        ))}
+      </ul>
+
       <h2 className="font-display mt-12 text-2xl font-black">تحويلات مستنية مراجعة</h2>
       <ul className="mt-4 space-y-3">
         {payments.length === 0 ? <li className="text-sm text-muted">مفيش تحويلات معلّقة.</li> : null}
@@ -79,7 +120,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               {payment.user.name} · {payment.course.title}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {providerLabel[payment.provider]} · {payment.amountEgp.toLocaleString("en-US")} ج.م
+              {providerLabel[payment.provider]} · {payment.amountEgp.toLocaleString("en-US")} ج.م ·{" "}
+              {studyModeLabel(modeByKey.get(`${payment.userId}:${payment.courseId}`) ?? "online")}
+              {payment.user.phone ? ` · ${payment.user.phone}` : ""}
+              {payment.reference ? ` · رقم العملية ${payment.reference}` : ""}
             </p>
             <form action={confirmManualPayment} className="mt-4 flex gap-2">
               <input type="hidden" name="paymentId" value={payment.id} />
@@ -128,6 +172,35 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               {submission.url}
             </a>
             {submission.note ? <p className="mt-2 text-sm text-muted">{submission.note}</p> : null}
+            {submission.reviewed ? (
+              <p className="mt-3 text-sm font-bold text-accent">اتراجعت</p>
+            ) : (
+              <form action={reviewSubmission} className="mt-3">
+                <input type="hidden" name="submissionId" value={submission.id} />
+                <button type="submit" className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-ink">
+                  اتراجعت
+                </button>
+              </form>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="font-display mt-12 text-2xl font-black">الطلاب</h2>
+      <ul className="mt-4 space-y-3">
+        {roster.length === 0 ? <li className="text-sm text-muted">لسه مفيش طلاب.</li> : null}
+        {roster.map((enrollment) => (
+          <li key={enrollment.id} className="rounded-3xl border border-line bg-surface p-5">
+            <p className="font-bold">
+              {enrollment.user.name} · {enrollment.course.title}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {studyModeLabel(enrollment.mode)} · {enrollment.status === "paid" ? "مفتوح" : "مستني الدفع"}
+              {enrollment.user.phone ? ` · ${enrollment.user.phone}` : ""}
+            </p>
+            <p className="mt-1 text-sm text-muted" dir="ltr">
+              {enrollment.user.email}
+            </p>
           </li>
         ))}
       </ul>

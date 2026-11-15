@@ -29,6 +29,7 @@ export async function claimManualPayment(formData: FormData): Promise<void> {
     redirect(`/login?next=${encodeURIComponent(safeNextPath(`/checkout/${slug}`, "/"))}`);
   }
   const provider = manualProvider(String(formData.get("provider") ?? ""));
+  const reference = String(formData.get("reference") ?? "").trim().slice(0, 120);
   if (!provider) {
     redirect(`/checkout/${slug}?pay=method`);
   }
@@ -51,8 +52,11 @@ export async function claimManualPayment(formData: FormData): Promise<void> {
         provider,
         amountEgp: course.priceEgp,
         status: "pending",
+        reference: reference || null,
       },
     });
+  } else if (reference) {
+    await prisma.payment.update({ where: { id: pending.id }, data: { reference } });
   }
   const mode = studyMode(String(formData.get("mode") ?? ""), courseAllowsHall(course.attendance));
   await prisma.enrollment.upsert({

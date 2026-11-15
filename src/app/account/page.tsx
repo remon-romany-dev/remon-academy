@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
 import { changePassword, logoutAction, updateProfile } from "@/actions/auth";
-import { submitProject } from "@/actions/learning";
+import { submitProject, updateStudyMode } from "@/actions/learning";
 import { buttonClass, fieldClass, ghostButtonClass } from "@/components/account/styles";
 import { PageFrame } from "@/components/site/page-frame";
 import { requireUser } from "@/lib/guards";
-import { canJoinMeeting, formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
+import { canJoinMeeting, courseAllowsHall, formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
 
 export const instant = false;
@@ -34,6 +34,9 @@ export default async function AccountPage({
     : [];
   const progress = prisma ? await prisma.lessonProgress.findMany({ where: { userId: session.user.id } }) : [];
   const submissions = prisma ? await prisma.submission.findMany({ where: { userId: session.user.id } }) : [];
+  const pendingPayments = prisma
+    ? await prisma.payment.findMany({ where: { userId: session.user.id, status: "pending" } })
+    : [];
   const profile = prisma ? await prisma.user.findUnique({ where: { id: session.user.id } }) : null;
   const courseIds = enrollments.map((enrollment) => enrollment.course.id);
   const meetings = prisma && courseIds.length > 0
@@ -45,6 +48,7 @@ export default async function AccountPage({
     : [];
   const done = new Set(progress.map((item) => item.lessonId));
   const submitted = new Map(submissions.map((item) => [item.courseId, item]));
+  const referenceByCourse = new Map(pendingPayments.flatMap((payment) => (payment.reference ? [[payment.courseId, payment.reference] as const] : [])));
   const passwordNote = {
     ok: "كلمة السر اتغيرت.",
     short: "كلمة السر الجديدة لازم تبقى 8 حروف على الأقل.",
@@ -61,6 +65,13 @@ export default async function AccountPage({
   const profileKey = search.profile;
   const profileMessage = profileKey === "ok" || profileKey === "bad" || profileKey === "off" ? profileNote[profileKey] : null;
   const displayName = profile?.name ?? session.user.name;
+  const nextMeeting = meetings
+    .filter((meeting) => {
+      const enrollment = enrollments.find((item) => item.course.id === meeting.courseId);
+      return enrollment?.status === "paid" && enrollment.mode === meeting.kind && canJoinMeeting(meeting.startsAt);
+    })
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())[0];
+  const nextCourse = nextMeeting ? enrollments.find((item) => item.course.id === nextMeeting.courseId)?.course : undefined;
 
   return (
     <PageFrame wide>
@@ -88,6 +99,21 @@ export default async function AccountPage({
       ) : null}
       {passwordMessage ? <p className="mt-4 text-sm font-bold text-accent">{passwordMessage}</p> : null}
       {profileMessage ? <p className="mt-4 text-sm font-bold text-accent">{profileMessage}</p> : null}
+      {nextMeeting && nextCourse ? (
+        <section className="mt-8 rounded-3xl border border-line bg-surface p-6">
+          <p className="text-sm font-bold text-accent">الحصة الجاية</p>
+          <h2 className="font-display mt-2 text-3xl font-black">{nextMeeting.title}</h2>
+          <p className="mt-2 text-base text-muted">
+            {nextCourse.title} · {formatCairo(nextMeeting.startsAt)}
+            {nextMeeting.place ? ` · ${nextMeeting.place}` : ""}
+          </p>
+          {nextMeeting.kind === "online" && nextMeeting.meetUrl ? (
+            <a href={nextMeeting.meetUrl} target="_blank" rel="noopener noreferrer" className={`${buttonClass} mt-5`}>
+              ادخل الحصة
+            </a>
+          ) : null}
+        </section>
+      ) : null}
       {session.user.role === "admin" ? (
         <Link href="/admin" className="mt-6 inline-flex font-bold text-accent">
           لوحة الإدارة
@@ -120,9 +146,29 @@ export default async function AccountPage({
                 <p className="mt-3 text-sm text-muted">
                   {studyModeLabel(enrollment.mode)} · {finished} من {total} دروس · {percent}%
                 </p>
+                {!open && referenceByCourse.get(enrollment.course.id) ? (
+                  <p className="mt-2 text-sm text-muted" dir="ltr">
+                    رقم العملية: {referenceByCourse.get(enrollment.course.id)}
+                  </p>
+                ) : null}
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-background">
                   <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
                 </div>
+                {courseAllowsHall(enrollment.course.attendance) ? (
+                  <form action={updateStudyMode} className="mt-4 flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="slug" value={enrollment.course.slug} />
+                    <label className="text-sm font-bold">
+                      طريقة الحضور
+                      <select name="mode" defaultValue={enrollment.mode} className={fieldClass}>
+                        <option value="online">أونلاين</option>
+                        <option value="hall">حضوري</option>
+                      </select>
+                    </label>
+                    <button type="submit" className={ghostButtonClass}>
+                      غيّر
+                    </button>
+                  </form>
+                ) : null}
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href={`/learn/${enrollment.course.slug}`} className="font-bold text-accent">
                     {open ? "كمّل الدروس المسجّلة" : "الدرس المجاني"}
@@ -173,7 +219,9 @@ export default async function AccountPage({
                     <button type="submit" className={buttonClass}>
                       {project ? "حدّث التسليم" : "سلّم المشروع"}
                     </button>
-                    {project && percent < 100 ? <p className="text-sm text-muted">المشروع متسجل. خلّص الدروس عشان الشهادة.</p> : null}
+                    {project?.reviewed ? <p className="text-sm text-muted">التسليم اتراجع.</p> : null}
+                    {project && !project.reviewed ? <p className="text-sm text-muted">التسليم متسجل ومستني المراجعة.</p> : null}
+                    {project && percent < 100 ? <p className="text-sm text-muted">خلّص الدروس عشان الشهادة.</p> : null}
                   </form>
                 ) : null}
               </li>

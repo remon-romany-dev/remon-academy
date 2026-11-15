@@ -101,6 +101,10 @@ export default async function CheckoutPage(props: PageProps<"/checkout/[slug]">)
                       <input type="radio" name="provider" value="vodafone" />
                       حوّلت على فودافون كاش
                     </label>
+                    <label className="block text-sm font-bold">
+                      رقم العملية لو ظاهر في التحويل
+                      <input name="reference" maxLength={120} dir="ltr" className="mt-2 w-full rounded-2xl border border-line bg-background px-4 py-3 text-base outline-none focus:border-accent" />
+                    </label>
                     <button type="submit" className={buttonClass}>
                       سجّلت التحويل
                     </button>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { courseAllowsHall, studyMode } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
 
 function projectUrl(value: string): string | null {
@@ -75,10 +76,55 @@ export async function submitProject(formData: FormData): Promise<void> {
   await prisma.submission.upsert({
     where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
     create: { userId: session.user.id, courseId: course.id, url, note },
-    update: { url, note },
+    update: { url, note, reviewed: false },
   });
   revalidatePath("/account");
   revalidatePath(`/account/certificate/${slug}`);
   revalidatePath("/admin");
   redirect("/account?project=1");
+}
+
+export async function updateStudyMode(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login?next=/account");
+  }
+  const slug = String(formData.get("slug") ?? "");
+  const prisma = getPrisma();
+  if (!prisma) {
+    redirect("/account");
+  }
+  const enrollment = await prisma.enrollment.findFirst({
+    where: { userId: session.user.id, course: { slug } },
+    include: { course: true },
+  });
+  if (!enrollment) {
+    redirect("/account");
+  }
+  const mode = studyMode(String(formData.get("mode") ?? ""), courseAllowsHall(enrollment.course.attendance));
+  await prisma.enrollment.update({ where: { id: enrollment.id }, data: { mode } });
+  revalidatePath("/account");
+  revalidatePath(`/learn/${slug}`);
+  revalidatePath(`/admin/courses/${slug}`);
+  redirect("/account");
+}
+
+export async function reviewSubmission(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (session?.user?.role !== "admin") {
+    redirect("/login?next=/admin");
+  }
+  const submissionId = String(formData.get("submissionId") ?? "");
+  const prisma = getPrisma();
+  if (!prisma) {
+    redirect("/admin?db=off");
+  }
+  const row = await prisma.submission.findUnique({ where: { id: submissionId } });
+  if (!row) {
+    redirect("/admin");
+  }
+  await prisma.submission.update({ where: { id: row.id }, data: { reviewed: true } });
+  revalidatePath("/admin");
+  revalidatePath("/account");
+  redirect("/admin");
 }

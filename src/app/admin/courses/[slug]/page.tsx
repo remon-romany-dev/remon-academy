@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { addLesson, deleteLesson, updateCourse, updateLesson } from "@/actions/admin";
-import { createMeeting, deleteMeeting, saveAttendance } from "@/actions/meetings";
+import { createMeeting, deleteMeeting, saveAttendance, updateMeeting } from "@/actions/meetings";
 import { buttonClass, fieldClass, ghostButtonClass } from "@/components/account/styles";
 import { PageFrame } from "@/components/site/page-frame";
 import { requireAdmin } from "@/lib/guards";
-import { formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
+import { cairoInputValue, formatCairo, meetingKindLabel, studyModeLabel } from "@/lib/meetings";
 import { getPrisma } from "@/lib/prisma";
 
 export const instant = false;
@@ -167,6 +167,38 @@ export default async function EditCoursePage({
                   </button>
                 </form>
               </div>
+              <form action={updateMeeting} className="mt-4 grid gap-3">
+                <input type="hidden" name="slug" value={course.slug} />
+                <input type="hidden" name="meetingId" value={meeting.id} />
+                <label className="block text-sm font-bold">
+                  عنوان الحصة
+                  <input name="title" required defaultValue={meeting.title} className={fieldClass} />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm font-bold">
+                    الميعاد بتوقيت مصر
+                    <input name="startsAt" type="datetime-local" required dir="ltr" defaultValue={cairoInputValue(meeting.startsAt)} className={fieldClass} />
+                  </label>
+                  <label className="block text-sm font-bold">
+                    النوع
+                    <select name="kind" defaultValue={meeting.kind} className={fieldClass}>
+                      <option value="online">أونلاين على Google Meet</option>
+                      <option value="hall">قاعة</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="block text-sm font-bold">
+                  رابط Google Meet
+                  <input name="meetUrl" type="url" defaultValue={meeting.meetUrl ?? ""} placeholder="https://meet.google.com/..." dir="ltr" className={fieldClass} />
+                </label>
+                <label className="block text-sm font-bold">
+                  مكان القاعة
+                  <input name="place" defaultValue={meeting.place ?? ""} className={fieldClass} />
+                </label>
+                <button type="submit" className={ghostButtonClass}>
+                  احفظ تعديل الحصة
+                </button>
+              </form>
               <form action={saveAttendance} className="mt-4 space-y-3">
                 <input type="hidden" name="slug" value={course.slug} />
                 <input type="hidden" name="meetingId" value={meeting.id} />
