@@ -6,7 +6,6 @@ import { completeLesson } from "@/actions/learning";
 import { buttonClass } from "@/components/account/styles";
 import { LessonPlayer } from "@/components/lesson/player";
 import { PageFrame } from "@/components/site/page-frame";
-import { whatsappLink } from "@/content/contact";
 import { bunnyEmbedUrl, getCourse, getCourseRecord } from "@/lib/catalog";
 import { canJoinMeeting, formatCairo } from "@/lib/meetings";
 import { auth } from "@/auth";
@@ -154,14 +153,13 @@ export default async function LearnPage({
               ) : null}
               <LessonPlayer title={current.title} embedUrl={bunnyEmbedUrl(current.bunnyVideoId)} />
               {!current.bunnyVideoId ? (
-                <a
-                  href={whatsappLink(`أهلاً، عايز أشوف الدرس المجاني بتاع كورس ${title}`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex min-h-12 items-center rounded-full bg-[#25d366] px-6 font-bold text-white"
-                >
-                  اطلب التسجيل على واتساب
-                </a>
+                <form action="/api/book" method="post" className="mt-4">
+                  <input type="hidden" name="kind" value="course" />
+                  <input type="hidden" name="title" value={title} />
+                  <button type="submit" className="inline-flex min-h-12 items-center rounded-full bg-[#25d366] px-6 font-bold text-white">
+                    اطلب التسجيل على واتساب
+                  </button>
+                </form>
               ) : null}
               {session?.user && !current.id.startsWith(`${slug}-`) ? (
                 <form action={completeLesson} className="mt-5">

@@ -12,7 +12,7 @@ import { SiteHeader } from "@/components/site/header";
 import { JsonLd } from "@/components/site/json-ld";
 import { TrackVisual } from "@/components/visuals/track-visual";
 import { LessonPlayer } from "@/components/lesson/player";
-import { PAYMENT, whatsappLink } from "@/content/contact";
+import { PAYMENT } from "@/content/contact";
 import { courses, formatEgp, SITE_NAME, SITE_URL, trackById } from "@/content/site";
 import { getCatalog, getCourse } from "@/lib/catalog";
 
@@ -232,14 +232,13 @@ export default async function CoursePage(props: PageProps<"/courses/[slug]">) {
                   >
                     افتح الدرس المجاني
                   </a>
-                  <a
-                    href={whatsappLink(`أهلاً، عايز أشوف الدرس المجاني بتاع كورس ${course.title}`)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-flex min-h-12 items-center rounded-full bg-[#25d366] px-6 font-bold text-white"
-                  >
-                    اطلب التسجيل على واتساب
-                  </a>
+                  <form action="/api/book" method="post" className="mt-3">
+                    <input type="hidden" name="kind" value="course" />
+                    <input type="hidden" name="title" value={course.title} />
+                    <button type="submit" className="inline-flex min-h-12 items-center rounded-full bg-[#25d366] px-6 font-bold text-white">
+                      اطلب التسجيل على واتساب
+                    </button>
+                  </form>
                 </div>
               )}
               <Link

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { whatsappLink } from "@/content/contact";
 import { courseBySlug, formatEgp } from "@/content/site";
 import { Reveal } from "@/components/ui/reveal";
 
@@ -82,7 +81,6 @@ export function Bundles() {
             const items = bundle.slugs.map((slug) => courseBySlug(slug)).filter((course) => course !== undefined);
             const sum = items.reduce((total, course) => total + course.priceEgp, 0);
             const price = sum - bundle.save;
-            const message = `أهلاً، عايز باقة ${bundle.title} بـ ${formatEgp(price)} جنيه`;
             return (
               <article key={bundle.title} className="rounded-3xl border border-line bg-background p-7">
                 <h3 className="font-display text-3xl font-black">{bundle.title}</h3>
@@ -96,14 +94,14 @@ export function Bundles() {
                   <span className="ms-2 font-display text-3xl font-black text-foreground">{formatEgp(price)} ج.م</span>
                 </p>
                 <p className="mt-1 text-sm font-bold text-accent">توفر {formatEgp(bundle.save)} ج.م</p>
-                <a
-                  href={whatsappLink(message)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-6 inline-flex min-h-12 items-center rounded-full bg-accent px-6 font-bold text-accent-ink"
-                >
-                  احجز الباقة على واتساب
-                </a>
+                <form action="/api/book" method="post" className="mt-6">
+                  <input type="hidden" name="kind" value="bundle" />
+                  <input type="hidden" name="title" value={bundle.title} />
+                  <input type="hidden" name="price" value={price} />
+                  <button type="submit" className="inline-flex min-h-12 items-center rounded-full bg-accent px-6 font-bold text-accent-ink">
+                    احجز الباقة على واتساب
+                  </button>
+                </form>
               </article>
             );
           })}

@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { SITE_NAME } from "@/content/site";
 import { activateEnrollment } from "@/lib/fulfill";
-import { courseAllowsHall, studyMode } from "@/lib/meetings";
+import { courseAllowsHall, studyMode, studyModeLabel } from "@/lib/meetings";
 import { requireAdmin } from "@/lib/guards";
 import { sendMail } from "@/lib/mail";
+import { notifyOwner } from "@/lib/notify";
 import { getPrisma } from "@/lib/prisma";
 import { paymobConfigured } from "@/lib/paymob";
 import { safeNextPath } from "@/lib/paths";
@@ -19,6 +20,19 @@ function manualProvider(value: string): "instapay" | "vodafone" | null {
       return value;
     default:
       return null;
+  }
+}
+
+function manualProviderLabel(provider: "instapay" | "vodafone"): string {
+  switch (provider) {
+    case "instapay":
+      return "إنستا باي";
+    case "vodafone":
+      return "فودافون كاش";
+    default: {
+      const neverProvider: never = provider;
+      return neverProvider;
+    }
   }
 }
 
@@ -64,12 +78,30 @@ export async function claimManualPayment(formData: FormData): Promise<void> {
     create: { userId: session.user.id, courseId: course.id, status: "pending", mode },
     update: { mode },
   });
-  if (session.user.email) {
-    const origin = process.env["AUTH_URL"] ?? "https://courses.remonromany.com";
+  const student = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const origin = process.env["AUTH_URL"] ?? "https://courses.remonromany.com";
+  const providerName = manualProviderLabel(provider);
+  await notifyOwner(
+    `طلب شراء — ${course.title}`,
+    [
+      "طالب سجّل تحويل.",
+      `الاسم: ${student?.name ?? session.user.name ?? ""}`,
+      `الإيميل: ${student?.email ?? session.user.email ?? ""}`,
+      `الموبايل: ${student?.phone || "مش متسجل"}`,
+      `الكورس: ${course.title}`,
+      `المبلغ: ${course.priceEgp.toLocaleString("en-US")} جنيه`,
+      `الدفع: ${providerName}`,
+      `الحضور: ${studyModeLabel(mode)}`,
+      `رقم العملية: ${reference || "مش متسجل"}`,
+      `المراجعة: ${origin}/admin`,
+    ].join("\n"),
+  );
+  const studentEmail = student?.email ?? session.user.email;
+  if (studentEmail) {
     await sendMail({
-      to: session.user.email,
+      to: studentEmail,
       subject: `استلمنا طلب الاشتراك — ${course.title}`,
-      text: `أهلاً ${session.user.name ?? ""}\nاستلمنا طلب تحويل كورس ${course.title} بمبلغ ${course.priceEgp.toLocaleString("en-US")} جنيه.\nبعد مراجعة الإيصال الكورس هيتفتح في حسابك:\n${origin}/account\n${SITE_NAME}`,
+      text: `أهلاً ${student?.name ?? session.user.name ?? ""}\nاستلمنا طلب تحويل كورس ${course.title} بمبلغ ${course.priceEgp.toLocaleString("en-US")} جنيه.\nبعد مراجعة الإيصال الكورس هيتفتح في حسابك:\n${origin}/account\n${SITE_NAME}`,
     });
   }
   redirect("/account?sent=1");
